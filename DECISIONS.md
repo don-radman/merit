@@ -248,3 +248,29 @@ timestamped without a client diffing `get_ledger` against its own previous answe
 and *when* — never *how much*, which is the property D10 actually protects.
 
 **Revisit when:** a new entry point is added, or someone wants to publish a total.
+
+### D12 — The issuer can pay without being asked.
+*Added after review of the UX pass: the screens promised something the contract could not do.*
+
+`claim` requires `introducer.owner.require_auth()`. That made being paid an action the
+introducer had to remember to take, while the scout dashboard was promising they would never
+have to chase a commission. One of the two had to move.
+
+So the contract now also has `settle(code)`, authorised by the **issuer**, marking exactly
+the same rows and emitting exactly the same `claimed` event. `claim` stays as the
+introducer's optional *collect now*. Downstream nothing can tell them apart, which is the
+point: the book, the ledger and the settlement service all care that an introduction is
+paid, not who pressed the button.
+
+**Why one shared body.** Both route through a private `mark_settled`. Two copies of "which
+rows are payable" would drift, and the copy that drifted would be the one deciding whether
+somebody gets paid. The tests cover the case that matters — the issuer settling does **not**
+pay a row the issuer previously clawed back, even though the issuer is the one asking.
+
+**What this does not do.** It does not make the fund console's *Run payout* button real.
+That needs the issuer to sign, and the live client still has no signer at all, so
+`runSettlement` stays undefined and the UI says so. The contract is no longer the thing
+blocking it.
+
+**Revisit when:** a signer exists, or someone wants settlement to cover every code in one
+call rather than one code at a time.

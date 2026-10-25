@@ -257,15 +257,50 @@ impl IntroducerRails {
         Self::config(&env)?;
         let introducer = Self::introducer(&env, &code)?;
         introducer.owner.require_auth();
+        Self::mark_settled(&env, &code)
+    }
 
+    /// The issuer pays a vested introduction without the introducer having to
+    /// ask for it.
+    ///
+    /// `claim` requires the introducer's signature, which makes being paid
+    /// something they have to remember to do. A distributor who is told they
+    /// never have to chase a commission should not have to press a button to
+    /// receive one, so the issuer can settle on their behalf and `claim`
+    /// becomes an optional "collect now" rather than the only way through.
+    ///
+    /// Deliberately the same effect as `claim`: it marks the same rows and
+    /// emits the same `claimed` event, because to everyone downstream — the
+    /// book, the ledger, the settlement service — a paid introduction is a
+    /// paid introduction regardless of who triggered it.
+    pub fn settle(env: Env, code: String) -> Result<u32, Error> {
+        let cfg = Self::config(&env)?;
+        cfg.issuer.require_auth();
+        // Still has to exist: settling an unknown code should say so rather
+        // than quietly report nothing to pay.
+        Self::introducer(&env, &code)?;
+        Self::mark_settled(&env, &code)
+    }
+
+    /// Mark every vested, unclaimed, unrecovered introduction of this code as
+    /// claimed and publish the ids.
+    ///
+    /// Shared by `claim` and `settle`. The only thing that differs between
+    /// them is who had to authorise it, so the rule for what gets paid lives
+    /// here once — two copies would drift, and the copy that drifted would be
+    /// the one deciding whether someone gets paid.
+    ///
+    /// The event carries ids only. Publishing a total would hand an observer
+    /// the exact settlement basis in one number and undo D10.
+    fn mark_settled(env: &Env, code: &String) -> Result<u32, Error> {
         let now = env.ledger().timestamp();
-        let mut all = Self::attributions(&env);
-        let mut ids = Vec::new(&env);
+        let mut all = Self::attributions(env);
+        let mut ids = Vec::new(env);
         let mut unvested = 0u32;
 
         for i in 0..all.len() {
             let mut a = all.get_unchecked(i);
-            if a.code != code || a.recovered || a.claimed {
+            if &a.code != code || a.recovered || a.claimed {
                 continue;
             }
             if a.vests_at > now {
@@ -285,7 +320,7 @@ impl IntroducerRails {
 
         env.storage().instance().set(&DataKey::Attributions, &all);
         let count = ids.len();
-        env.events().publish((symbol_short!("claimed"), code), ids);
+        env.events().publish((symbol_short!("claimed"), code.clone()), ids);
         Ok(count)
     }
 

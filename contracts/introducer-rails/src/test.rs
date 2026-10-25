@@ -214,3 +214,47 @@ fn no_state_change_is_silent() {
     let _ = f.client.try_claim(&code(&f.env));
     assert_eq!(our_events(&f), 0, "a refused claim must stay silent");
 }
+
+/// The product promise is that a scout never chases a commission. That only
+/// holds if someone other than the scout can trigger the payment, so this
+/// covers the issuer doing it — and, more importantly, covers it obeying the
+/// same rules as `claim` rather than becoming a second, laxer way to pay.
+#[test]
+fn the_issuer_can_settle_without_the_introducer_asking() {
+    let f = setup();
+    register(&f);
+    let paid = f.client.subscribe(&f.investor, &code(&f.env), &250_000i128);
+    let clawed = f.client.subscribe(&f.investor, &code(&f.env), &180_000i128);
+
+    // Refused before vesting, for the same reason and with the same error a
+    // claim would give.
+    assert_eq!(f.client.try_settle(&code(&f.env)), Err(Ok(Error::NotYetVested)));
+
+    f.client.recover(&clawed.id);
+    f.env.ledger().with_mut(|l| l.timestamp += WINDOW + 1);
+
+    // One row settled, not two: the clawed-back introduction stays unpaid even
+    // though the issuer — who clawed it back — is the one asking.
+    assert_eq!(f.client.settle(&code(&f.env)), 1);
+    assert!(f.env.auths().iter().any(|(a, _)| a == &f.issuer));
+
+    let book = f.client.get_book(&code(&f.env));
+    let settled = book.iter().find(|a| a.id == paid.id).unwrap();
+    assert!(settled.claimed);
+    let refused = book.iter().find(|a| a.id == clawed.id).unwrap();
+    assert!(!refused.claimed && refused.recovered);
+
+    // Indistinguishable from a claim downstream: nothing left by either route.
+    assert_eq!(f.client.claimable_basis(&code(&f.env)), 0);
+    assert_eq!(f.client.try_claim(&code(&f.env)), Err(Ok(Error::NothingToClaim)));
+}
+
+/// Settling a code that was never registered should say so, rather than
+/// reporting that there is nothing to pay.
+#[test]
+fn settling_an_unknown_code_is_refused() {
+    let f = setup();
+    register(&f);
+    let unknown = String::from_str(&f.env, "CALDER-XXX");
+    assert_eq!(f.client.try_settle(&unknown), Err(Ok(Error::UnknownCode)));
+}
