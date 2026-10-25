@@ -27,8 +27,19 @@ spreadsheet and invoice, months late, with commercially sensitive numbers sittin
 file that everyone who touches the deal can read.
 
 Stellar's own position is that the bottleneck has moved from issuance to getting assets to
-end users. We could not find a Stellar repo or SCF submission that handles referral,
-introducer or placement-fee attribution.
+end users.
+
+**On novelty, stated accurately.** Referral attribution on Stellar is not unclaimed ground:
+[Fuul](https://fuul.xyz) is an incentives and affiliate engine — conversion events, automated
+reward payouts, used by Coinbase, Kraken, Morpho and dYdX — with two SCF submissions to deploy
+natively on Stellar. If the claim were "nobody does referral attribution", it would be false
+and a reviewer would find it in one search.
+
+What we could not find is anyone treating the **commercial terms** as the thing to protect.
+Fuul's model is growth incentives, where campaigns are public by design. Ours is regulated
+fund distribution, where the rate a manager gives one distributor is exactly what the others
+must not see. That is the gap, and it is narrower and more defensible than "first to do
+referrals".
 
 ## What it does
 
@@ -39,9 +50,9 @@ Introducer link → Passkey wallet onboarding → Issuer authorizes trustline
 
 An introducer registers once and gets a link. When an investor subscribes through that
 link, the referral is recorded onchain and the introducer's trail fee accrues
-automatically. Fee amounts are held in a Confidential Token, so they are visible only to
-the introducer, the issuer and an auditor — not to the public and not to other
-introducers.
+automatically. The commission itself never touches the chain: the rate is private between the
+issuer and that introducer, and settlement is a confidential transfer out of the issuer's pool.
+**Nobody can tell what an introducer earns.**
 
 ## The three screens
 
@@ -81,16 +92,39 @@ without any individual position being public.
 Confidential Tokens encrypt balances and transfer amounts while leaving sender and
 recipient addresses public. We apply them to **introducer fee balances only**.
 
-We are deliberately *not* making investor holdings confidential, for a reason worth stating
-plainly: as of the current release, [the Stellar privacy docs](https://developers.stellar.org/docs/build/apps/privacy#confidential-tokens)
-note that the verifier accepts only **non-zero-knowledge UltraHonk proofs**, so OpenZeppelin
-does not guarantee that proofs keep balances and amounts private. Zero-knowledge
-verification is in progress. That is fine for a testnet demo of a fictional fund, and it is
-not fine for real investor positions.
+**What the chain shows.** Who introduced whom, and how much each investor subscribed. Both are
+public transfers and we do not pretend otherwise. The issuer's confidential pool is topped up in
+the open too — a deposit is public-to-private by construction, so the amount entering cannot be
+hidden. That disclosure is aggregate: it says how much the issuer has set aside for
+distribution, not who gets what.
 
-So: fees-only now, holdings when ZK verification lands. The architecture does not change —
-the same primitive applies to the unit token — which is why we are comfortable calling it a
-roadmap item rather than a redesign.
+**What the chain does not show.** Any rate, any commission, or any introducer's earnings. The
+contract stores no fee and no rate — it is an attribution and vesting ledger, nothing more — and
+every payment out of the pool is a `confidential_transfer` whose amount appears nowhere.
+
+That boundary is deliberate, and it is the one that matters commercially. Fund flows get
+disclosed; distribution terms do not. A manager will publish what came in and will not let one
+distributor learn another's rate.
+
+**Measured, not assumed.** `contracts/SPIKE.md` records what we actually read off the chain at
+each step, including the deposit event that carries its amount in the clear. An earlier draft of
+this README claimed more than the code did; that is how we found it.
+
+**The one thing we do not yet guarantee.** As of the current release, [the Stellar privacy
+docs](https://developers.stellar.org/docs/build/apps/privacy#confidential-tokens) note that the
+verifier accepts only **non-zero-knowledge UltraHonk proofs**, so OpenZeppelin does not guarantee
+that proofs keep amounts private. Zero-knowledge verification is in progress. Fine for a testnet
+demo of a fictional fund; not fine for real money, and we would not ship it as such.
+
+## Operational notes
+
+The issuer's confidential pool is spendable only with its opening `(v, r)`, held off-chain.
+**Lose that and the pool is unspendable** — no key recovers it, because there is no key. It is
+rolled forward on every settlement.
+
+Every account that touches the confidential token must be allowlisted *before* it registers,
+including contracts. Miss it and you get a bare `Error(Contract, #3602)` from deep inside the
+token with no indication of the cause.
 
 ## Prior art, and how this differs
 
@@ -101,6 +135,7 @@ roadmap item rather than a redesign.
 | [stellar-rwa-web](https://github.com/RWA-ToolKit/stellar-rwa-web) | Issuance, allowlists, dividends | Issuance is covered ground; we build the distribution layer on top. |
 | [OZ confidential token demo](https://github.com/brozorec/stellar-confidential-token-demo) | Contracts, SDK, in-browser proving | Reference for the proving path. Targets the earlier developer preview, so expect API drift. |
 | [stellar-confidential-token-sdk](https://github.com/aguilar1x/stellar-confidential-token-sdk) | Client layer + indexer for OZ confidential tokens | Closest existing client layer; read before writing our own. |
+| [Fuul](https://fuul.xyz) | Incentives and affiliate engine; conversion events and automated reward payouts | The real prior art for attribution. Public campaigns by design; we hide the commercial terms. |
 
 ## Who pays, and why this is a business
 

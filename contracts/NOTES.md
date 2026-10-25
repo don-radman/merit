@@ -258,8 +258,9 @@ vesting window still works:
 
 - while vesting, the fee is a public `i128` the contract holds — which is exactly what lets
   the issuer recover it
-- at claim, it is deposited into the confidential token and **stops being public at the
-  moment it becomes the introducer's**
+- at claim, it is deposited into the confidential token, where the introducer's **balance**
+  becomes a commitment. The deposit amount itself stays public (public-to-private by
+  construction, plus a `Deposit` event) — see SPIKE.md for what is measured, not assumed
 - the introducer later withdraws or transfers it confidentially, proving with their own
   opening
 
@@ -280,3 +281,59 @@ function to call, which is the only reason this was quick to fix.
 
 `vesting_window_secs` is **0** on this deployment so the claim could be demonstrated in one
 sitting. Production is 90 days (7776000).
+
+## Settlement treasury — set up on testnet
+
+`ir-treasury` = `GCJWYYAIFV2OMODQRXO5N3DUOZYNSTM2DKWVYVU5DL357AKNFXKBUFI4`
+
+Registered on the confidential token with a real proof, allowlisted, holding 50,000,000
+stroops of TUSDC publicly and 25,000,000 deposited and merged into its confidential
+`spendable_commitment`. It is the sender for confidential settlement.
+
+**Why a separate account and not the issuer.** `ir-issuer` issues TUSDC, and a Stellar
+issuer cannot hold a trustline to its own asset — so it can never hold the float it would
+pay from. Any settlement sender has to be an account that is not the asset issuer.
+
+**Deriving the first opening without persisted state.** From `storage.rs`:
+
+```rust
+// deposit
+let c_dep = Grumpkin::mul(e, &Grumpkin::generator(e), amount as u128);  // amount * G
+// merge
+data.spendable_commitment = Grumpkin::add(e, &spendable, &receiving);
+```
+
+A Pedersen commitment is `v*G + r*H`. A deposit has no `H` term, so its blinding is **zero**
+and `merge` is additive. A balance built from deposits alone therefore opens to
+`{ v: <total deposited>, r: 0 }` — no persisted state needed for the first spend.
+
+After the first `confidential_transfer` the blinding is non-zero and that shortcut is gone:
+persist `next` from the envelope **before** submitting, every time. The opening is the only
+thing that can spend a commitment.
+
+Both `ir-treasury` and `ir-introducer` registered with `auditor_id` 0, so they share the
+auditor key the circuits commit to. A new account on a different auditor id will not
+interoperate with them.
+
+## Never confirm a chain write by reading CLI output
+
+This cost real state during settlement, and it is the kind of bug that looks like a
+cryptography failure when it is a parsing failure.
+
+A `confidential_transfer` **landed**, but success was being detected by grepping the CLI
+output for `Event:`. The grep missed, the write was read as rejected, a rollback restored the
+previous opening — and `.conf-state` then pointed at a commitment that no longer existed on
+chain. The pool looked unspendable.
+
+It was recovered by recomputing `v*G + r*H` for each candidate opening and comparing against
+the chain's `spendable_commitment`, which is also the fix:
+
+- **Persist `next` BEFORE submitting, never after.** The SDK says this outright and it is easy
+  to get backwards while the happy path still works.
+- **Confirm by recomputing the commitment and comparing to chain state**, never by parsing a
+  CLI string. Output formats drift, greps miss, and a false negative here destroys the only
+  thing that can spend the balance.
+
+Every `grep -oE "Event:"` in a throwaway diagnostic in this repo's history is the same latent
+bug. It is harmless when you are only reading; it is not harmless when a failed read triggers
+a rollback.

@@ -16,7 +16,9 @@ number of milliseconds.** Not "a balance went up". Not "it compiled".
 | CSDIF (fund unit) | `CDUDSK7LJATIT4OULSY6PRETCGYY5VIUH35HKDVHNMN3XMRQJAOQWCKO` |
 
 `initialise` and `register_introducer` have both run against it and the introducer reads
-back off the chain. 50 bps trail fee, 90-day vesting window, 50,000 minimum.
+back off the chain. 90-day vesting window, 50,000 minimum. (That deployment predates the
+rate-private rewrite and still took a `trail_fee_bps`; the current contract has no rate
+field at all.)
 
 ## Already done
 
@@ -473,3 +475,51 @@ parties is confidential"** — not "fee amounts are never visible". Someone summ
 events can reconstruct a single introducer's claims until they move funds confidentially.
 
 The e2e script prints this caveat on every run so nobody reads a PASS as more than it is.
+
+---
+
+## Confidential settlement — working on testnet
+
+The first full `confidential_transfer` through OpenZeppelin's token. Previously only
+`verify_proof` had been exercised directly, which is a weaker thing.
+
+```
+witness: 30 params (SDK gives 29)
+proved against OZ's transfer circuit
+TransferData: 11-field payload + 14592-byte proof
+Event: Transfer
+```
+
+### Why the SDK alone cannot do this
+
+It is one field short in **two** places, not one:
+
+- **the witness** — `completeWitness` in `src/lib/confidential.ts` supplies `r_tilde_aud_s`
+- **the payload** — `TransferWitness.payload` carries 10 fields; v0.8.0's `TransferPayload`
+  has 11. `encodeTransferData` would emit a payload the contract rejects, so
+  `scripts/conf-settle.mjs` assembles the struct by hand with `scvStruct`.
+
+### What is public and what is not
+
+| | |
+|---|---|
+| `deposit` event | `{"amount": "1000000000000"}` — **readable** |
+| `transfer` event | `b_tilde`, commitments, masks — **no amount** |
+
+Deposits are public-to-private by construction. Transfers are not. So the issuer funds a
+confidential pool once in the open, and every payment out of it is confidential.
+
+### Openings are the asset
+
+The sender's `(v, r)` is the only thing that can spend their commitment. `contracts/.conf-state`
+holds it and is rolled forward after each settlement — gitignored, along with
+`contracts/rates.json`. Lose that file and the pool is unspendable; leak `rates.json` and the
+privacy this design exists for is gone.
+
+### Setup, once per environment
+
+```sh
+./scripts/confidential.sh register ir-issuer      # needs an allowlist entry first
+# deposit into the issuer's confidential balance, then `merge`
+./scripts/confidential.sh settle CALDER-PR7 <basis>
+```
