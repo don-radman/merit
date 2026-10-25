@@ -19,9 +19,9 @@ one shot only — the fund's view of all advisers — because it is the only scr
 the asymmetry the whole design exists for: the fund holds every rate, the chain holds none.
 
 **Do not press anything on `:5173`.** Its reads are live; its writes are the stub. *Run
-payout* is now correctly disabled in live mode and says why. *Collect now* on `/scout` is
-not — it will report an amount from the fixtures that contradicts the live figure on the
-same screen. Keep it out of frame.
+payout* is disabled in live mode and says why; *Collect now* on `/scout` is hidden in live
+mode for the same reason; the demo bar offers only navigation. There is nothing left to
+press, but there is also nothing to gain by trying.
 
 ## Preflight
 
@@ -64,16 +64,16 @@ introduction and two sends, moving every figure you just read. The second deploy
 new contract, sleeps about eleven minutes, and does not write the new id back — the portal
 would still be pointing at the old one.
 
-**Crop these:** the dev bar at the top of `:5173` (its *Reset* and *Vest all* buttons mutate
-invisible stub state in live mode), and the auditor panel at the bottom of `/issuer`, whose
-heading says the auditor key is *not* held by this client while the paragraph beside it
-describes decrypting settlements.
+**Nothing on `:5173` needs cropping any more.** In live mode the demo bar at the bottom
+offers only navigation, and the reconciliation panel at the foot of `/issuer` says plainly
+that this client holds no auditor key and reads the fund's own ledger. Neither is the shot,
+but neither contradicts the shot either.
 
 **Don't film `cargo test`.** It prints seven SDK deprecation warnings before the two green
 lines. State the count instead: 23 host tests, 10 and 13, none failing.
 
-**Mind the vocabulary.** The portal says *adviser*; the fund console's column header says
-*Scout*. Beat 7 cuts between them — say "scout" once as you arrive, or avoid the word.
+**Vocabulary is aligned.** Both surfaces say *adviser* (one constant, `PRODUCT.roleLabel`),
+and both say *Payable* for a vested, unpaid row. Beat 7 cuts between them without a seam.
 
 **Don't leave the confirm sheet open.** A prepared authorisation is valid for about ten
 minutes and lives only in the one server process's memory. Click, then touch the sensor.

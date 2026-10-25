@@ -59,24 +59,24 @@ issuer and that introducer, and settlement is a confidential transfer out of the
 This build ships **exactly three screens**. Anything not on this list is out of scope.
 
 ### 1. Investor — subscribe (`/i/<CODE>`)
-Opens a scout's link, creates a passkey account (no seed phrase, no gas, and the word
+Opens an adviser's link, creates a passkey account (no seed phrase, no gas, and the word
 "wallet" never appears), passes a mock KYC step, subscribes in US dollars, and sees a
 plain-English holdings statement. Five stages are shown as visible progress; the fund
 approving the account is the one real wait. There is **no proof on this path** — the
 contract records attribution in the clear by design, and the only proof in the system is
 the fund's, at settlement. Add `?frame=phone` to record it in a phone-sized frame.
 
-### 2. Scout — your book (`/scout`)
+### 2. Adviser — your book (`/scout`)
 The hero screen, built for someone who has never used web3. A share link, three numbers
 (Earned · On its way · Paid out), and one row per introduction with a status that answers
 "when do I get paid": **Vesting → Ready → Paid**, or **Reversed** if the client exited
 early. A **"What the world sees"** toggle re-renders the same screen as the public record:
 the fees become dots and a banner says what the chain holds. Fee figures are computed at
-the scout's own rate and shown to them only. A one-time **Set up payouts** card stands in
+the adviser's own rate and shown to them only. A one-time **Set up payouts** card stands in
 for confidential-account registration, framed like adding a bank account.
 
 ### 3. Fund — attribution ledger (`/issuer`)
-Every attribution across all scouts, each fee at *that* scout's private rate (the fund is
+Every attribution across all advisers, each fee at *that* adviser's private rate (the fund is
 the one party that holds every rate), outstanding liability, and a **Run payout** button —
 the "you never chase" promise made literal.
 

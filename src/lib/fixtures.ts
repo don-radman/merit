@@ -43,8 +43,12 @@ export const PRODUCT = {
   // financial use; warm in everyday speech. "Introduced via Merit."
   name: 'Merit',
   tagline: 'Credit where it’s due.',
-  /** What we call an introducer on screen. One word, no jargon. */
-  roleLabel: 'Scout',
+  /**
+   * What we call an introducer on screen. One word, no jargon. "Adviser"
+   * because that is what the Calder portal (site/) says, and the video cuts
+   * between the two surfaces — one word for one role.
+   */
+  roleLabel: 'Adviser',
 };
 
 /**

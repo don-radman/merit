@@ -7,16 +7,16 @@ type State = NonNullable<BookEntry['state']>;
  * The four states an introduction can be in, in the words a scout uses.
  *
  *   vesting    "Vesting"   — invested; the fee is earned but inside its window
- *   claimable  "Ready"     — vested; it will pay on the next payout run
+ *   claimable  "Payable"   — vested; it will pay on the next payout run
  *   claimed    "Paid"      — settled
  *   recovered  "Reversed"  — the investor exited early; the fund recovered it
  *
- * The on-chain names are kept in the type; the labels are ours. Never show
- * 'claimable' or 'recovered' to a scout.
+ * The on-chain names are kept in the type; the labels are ours, and they
+ * match the Calder portal's. Never show 'claimable' or 'recovered' to a human.
  */
 export const STATE_LABEL: Record<State, string> = {
   vesting: 'Vesting',
-  claimable: 'Ready',
+  claimable: 'Payable',
   claimed: 'Paid',
   recovered: 'Reversed',
 };

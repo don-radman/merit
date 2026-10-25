@@ -7,7 +7,7 @@ import CopyButton from '@/components/CopyButton.tsx';
 import { SkeletonRows, SkeletonStats } from '@/components/Skeleton.tsx';
 import { useToast } from '@/components/Toast.tsx';
 import { FingerprintIcon, LockIcon, ShieldCheckIcon } from '@/components/icons.tsx';
-import { FUND, MODE, PRODUCT, createClient, formatUsd, linkFor } from '@/lib/index.ts';
+import { FUND, MODE, PRODUCT, createClient, formatUsd, linkFor, liveMethods } from '@/lib/index.ts';
 import type { BookEntry, ClientError, ClientErrorCode } from '@/lib/index.ts';
 import { useLiveData } from '@/lib/useLiveData.ts';
 import { formatBps, formatDate } from '@/lib/format.ts';
@@ -170,6 +170,11 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
     .sort()
     .at(-1);
   const hasClaimable = Number(book.totals.feeClaimable.replace(/,/g, '')) > 0;
+  // In live mode the reads are real but `claimFee` is still the stub, so a
+  // Collect button would report a fixture number next to a live one. Only
+  // offer it when the client that would honour it is the one on screen.
+  const canCollect =
+    MODE === 'stub' || (liveMethods as readonly string[]).includes('claimFee');
   const link = linkFor(book.code);
   const mask = <span className="mask" aria-label="Not on the public record">••••</span>;
 
@@ -257,7 +262,7 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
           hint={
             isPublic
               ? 'Not on the public record'
-              : `${ready.length} ready · ${vesting.length} vesting`
+              : `${ready.length} payable · ${vesting.length} vesting`
           }
         />
         <StatTile
@@ -347,11 +352,11 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
       </section>
 
       {/* ---- collect -------------------------------------------------------- */}
-      {!isPublic && hasClaimable && (
+      {!isPublic && hasClaimable && canCollect && (
         <section className="card collect" aria-labelledby="collect-h">
           <div>
             <h2 id="collect-h">
-              {formatUsd(book.totals.feeClaimable)} is ready
+              {formatUsd(book.totals.feeClaimable)} is payable
             </h2>
             <p className="muted">
               It pays automatically on the fund’s next payout run. Collect now if you would rather not wait.

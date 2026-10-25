@@ -70,10 +70,10 @@ export default function DevBar({ route }: { route: Route }) {
           Phone
         </button>
         <button className={`btn btn--ghost btn--sm${is('scout')}`} onClick={() => navigate('/scout')}>
-          Scout
+          Adviser
         </button>
-        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/scout?code=CALDER-DO2')} title="The other scout, on a different rate">
-          Scout 2
+        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/scout?code=CALDER-DO2')} title="The other adviser, on a different rate">
+          Adviser 2
         </button>
         <button className={`btn btn--ghost btn--sm${is('issuer')}`} onClick={() => navigate('/issuer')}>
           Fund
@@ -97,21 +97,28 @@ export default function DevBar({ route }: { route: Route }) {
         </span>
       )}
 
-      <label htmlFor="arm" className="devbar__label">
-        Fail next
-      </label>
-      <select id="arm" value={armed} onChange={(e) => arm(e.target.value as ClientErrorCode | '')}>
-        <option value="">—</option>
-        {ARMABLE.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      {/* Fail next and Reset act on the stub. In live mode they would mutate
+          state nothing on screen reads, so they are not offered. */}
+      {MODE === 'stub' && (
+        <>
+          <label htmlFor="arm" className="devbar__label">
+            Fail next
+          </label>
+          <select id="arm" value={armed} onChange={(e) => arm(e.target.value as ClientErrorCode | '')}>
+            <option value="">—</option>
+            {ARMABLE.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
 
-      <button className="btn btn--ghost btn--sm" onClick={reset}>
-        Reset
-      </button>
+          <button className="btn btn--ghost btn--sm" onClick={reset}>
+            Reset
+          </button>
+        </>
+      )}
+      {MODE === 'live' && <span className="muted small">reads are live · writes are not offered here</span>}
     </div>
   );
 }
