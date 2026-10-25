@@ -1,0 +1,119 @@
+# Contracts — build notes
+
+## Pinned dependencies
+
+| What | Where | Note |
+|---|---|---|
+| OpenZeppelin Stellar contracts | `OpenZeppelin/stellar-contracts` | **v0.8.0 or later.** The confidential token lives here as `stellar-confidential`. Active repo, Rust, audited at v0.8.0. |
+| Confidential token deployment examples | same repo | Verifier and auditor registries, allowlist policy, compliant token, factory. Start from these, do not hand-roll. |
+
+**Do not write circuits.** The v0.8.0 audit covers the contracts *and* the circuits. Using
+the library is the whole point of the "Composed" track — less code, more thinking.
+
+## Reference repos, graded
+
+- `aguilar1x/stellar-confidential-token-sdk` — **read this first.** The closest existing
+  client layer for OZ confidential tokens, plus an indexer that replays history. Maintained,
+  runs against testnet. This is the layer `src/lib/live.ts` is replacing; borrow from it.
+- `brozorec/stellar-confidential-token-demo` — contracts, SDK and **in-browser proving**.
+  The proving path is the hard part of the frontend story, so this is worth reading. Caveat:
+  it targets the earlier developer preview, so expect API drift from v0.8.0.
+- `stellar-experimental/who-ate-gerald` — freshest working confidential-token integration
+  (active October 2026), SDF-adjacent. Best guess at current API usage.
+- `berkay1532/confidential-payroll-stellar` — same privacy shape as our fee ledger: private
+  amounts, auditable totals.
+- `jayz22/stellar-confidential-transfer` — **read for design only, do not depend on it.**
+  Last commit September 2025, dormant. It is the original SDF prototype and predates the OZ
+  library by a year.
+
+## The ZK caveat, and what it means for us
+
+Per the Stellar privacy docs: the current verifier accepts only **non-zero-knowledge
+UltraHonk proofs**, so OpenZeppelin does not guarantee that proofs keep balances and amounts
+private. ZK verification is in progress; the docs say read the ZK setting notes before using
+confidential tokens with real assets.
+
+Consequences:
+- Fees are confidential, holdings are not. See `DECISIONS.md` D1.
+- Say this out loud in the README and the pitch. The judges are SDF people.
+- Testnet only. Not negotiable, and nothing of value is at stake anyway.
+
+## Hour 4 spike — do this before any real contract work
+
+**Target: one UltraHonk proof verified on testnet.** Not "a confidential balance that goes
+up" — a verified proof. Everything else is downstream of that working.
+
+Then immediately **measure how long proving takes** and put the number in
+`src/lib/fixtures.ts` as `PROVING_DELAY_MS`. If it is 10+ seconds in a browser, the demo
+video needs to pre-warm the claim or route it server-side, and the UI dev needs to know
+today, not tomorrow morning.
+
+## Build order
+
+1. Testnet accounts; issue the fund asset with `AUTH_REQUIRED` and clawback; deploy its SAC.
+2. **Spike: verified proof on testnet.** Stop here if it fails — see the fallback below.
+3. Subscription + attribution contract: records code → investor → amount, mints units.
+4. Confidential fee balance: accrue on subscribe, claim with auditor view key registered.
+5. The CLI script that drives the whole flow end to end. This is the safety net: if the UI
+   dies at 4am, the CLI demo still exists and is still a submission.
+6. **The one-command reset script.** Needed before integration, not after — "full flow runs
+   twice without a reset" is the overnight gate and you cannot hit it without this.
+
+## Fallback if the proof does not land
+
+Trigger: no verified proof on testnet by Sunday evening.
+
+Accrue fees in a plain token, keep `IntroducerRailsClient` byte-for-byte identical so the UI
+never notices, document the confidential design in the README, and pitch the privacy
+architecture instead of demoing it.
+
+## Never cut
+
+The passkey subscription and the confidential fee claim. That is the demo.
+
+---
+
+## Before anything else: install the toolchain
+
+Neither cargo nor the Stellar CLI was present when this scaffold was written. Budget time
+for this at hour 0, because nothing else can start until it is done:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32v1-none          # check the docs for the current wasm target
+cargo install --locked stellar-cli
+stellar --version
+```
+
+Then scaffold the crate rather than hand-writing a manifest:
+
+```bash
+cd contracts && stellar contract init introducer-rails
+```
+
+and uncomment it in `contracts/Cargo.toml`.
+
+## What the contract has to expose
+
+The TypeScript interface is already frozen in `src/lib/types.ts`, so the contract surface is
+not an open question. Minimum set, named to match:
+
+| Client method | Contract function | Notes |
+|---|---|---|
+| `resolveCode` | `get_introducer(code) -> Introducer` | Read-only. Cheap. Do this one first. |
+| `registerIntroducer` | `register_introducer(owner, display_name) -> code` | Code generated onchain so it cannot collide. |
+| `subscribe` | `subscribe(investor, code, usdc_amount) -> (units, fee)` | Pulls USDC, mints units, writes attribution, accrues confidential fee. The big one. |
+| `getHoldings` | SAC `balance(investor)` | Classic asset via its SAC; no custom function needed. |
+| `getBook` | `get_book(code) -> Vec<Attribution>` | Plus the confidential balance read, decrypted client-side. |
+| `claimFee` | `claim_fee(code) -> amount` | Confidential transfer out. Policy-limited. |
+| `getLedger` | `get_ledger() -> Vec<Attribution>` | Issuer-only. Paginate if it gets long; four rows in the demo. |
+| `getAuditorAttestation` | auditor view-key read | Sum encrypted balances, compare to stated liability. |
+
+Generate bindings as soon as `subscribe` deploys, and **commit them**:
+
+```bash
+stellar contract bindings typescript --contract-id <id> --output-dir ../src/bindings
+```
+
+Committing the generated bindings means the UI builds on a machine with no Rust toolchain
+installed. That matters when only one of you has it.
