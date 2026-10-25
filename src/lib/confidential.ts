@@ -33,6 +33,35 @@
  * `nargo execute`, and the resulting proofs are accepted by OpenZeppelin's
  * verifier deployed on testnet.
  *
+ * ---------------------------------------------------------------------------
+ * HAZARD: A WITNESS IS A SECRET KEY ON DISK.
+ *
+ * Proving writes the witness somewhere `nargo` can read it, and a transfer or
+ * register witness contains `sk` — the confidential SPENDING key — alongside
+ * the opening `(v, r)` and, for a transfer, the commission in the clear.
+ * Anyone who reads that file can spend the balance. It is strictly worse than
+ * leaking a rate.
+ *
+ * Two artifacts, not one, and both persist unless deleted:
+ *   <circuit>/Prover.toml        the inputs
+ *   target/<name>.gz             the SOLVED witness — same values
+ *
+ * Any path that proves must sweep BOTH, right after proving and again on exit,
+ * by pattern rather than by name so a circuit nobody has written yet is
+ * covered:
+ *
+ *   find "$CIRCUITS" -name 'Prover.toml' -delete
+ *   find "$CIRCUITS/target" -name '*.gz' -delete
+ *
+ * The same applies to logs: never print `v`, `r`, or a transfer amount.
+ * Consecutive balances differ by the amount, and the basis is public on chain,
+ * so one printed pair gives up both the rate and the opening.
+ *
+ * This is written here because this file is where anyone building a proving
+ * path will start, and because every one of these was found on disk during
+ * this build rather than reasoned about in advance.
+ * ---------------------------------------------------------------------------
+ *
  * DELETE THIS FILE when the SDK ships a build against v0.8.0 circuits.
  */
 
