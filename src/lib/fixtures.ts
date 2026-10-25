@@ -39,8 +39,10 @@ export const FUND = {
  * changes everywhere.
  */
 export const PRODUCT = {
-  name: 'ScoutShare',
-  tagline: "Scout's honour.",
+  // "Merit": value earned through action; "on the merits" in legal and
+  // financial use; warm in everyday speech. "Introduced via Merit."
+  name: 'Merit',
+  tagline: 'Credit where it’s due.',
   /** What we call an introducer on screen. One word, no jargon. */
   roleLabel: 'Scout',
 };

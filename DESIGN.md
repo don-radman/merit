@@ -1,4 +1,8 @@
-# DESIGN.md — ScoutShare
+# DESIGN.md — Merit
+
+*Merit*: value earned through action — credit where credit is due. "On the merits" is
+serious and exact in legal and financial use; in everyday speech it is warm and human.
+"Introduced via Merit."
 
 The visual and verbal system behind the three screens. Read before touching
 `src/styles.css` or writing a string that an investor or a scout will see.
