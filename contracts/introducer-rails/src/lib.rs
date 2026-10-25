@@ -1,47 +1,29 @@
 #![no_std]
-//! Introducer Rails — confidential attribution and fee payouts.
+//! Introducer Rails — attribution and vesting for tokenized fund distribution.
 //!
-//! The contract is the escrow. Investors send USDC to it; it issues fund units
-//! from the supply the issuer parked here at setup, records who introduced
-//! whom, and accrues a trail fee that the introducer can withdraw once it has
-//! vested. Holding both sides here means `subscribe` needs only the investor's
-//! signature, not a second one from the issuer on every transaction.
+//! This contract deliberately does **not** know what anyone earns.
 //!
-//! Fee amounts are plain i128 in this contract. Making them confidential is
-//! the separate OpenZeppelin confidential-token path — see contracts/SPIKE.md
-//! and DECISIONS.md D1 for why fees and not holdings.
+//! It records who introduced whom, how much that investor subscribed, and when
+//! the resulting commission vests. It does not store a fee, a rate, or any
+//! payable amount, because a rate on chain is a rate the world can read — and
+//! in distribution the commercially sensitive number is the rate, not the
+//! subscription. A fund manager will disclose flows; they will not let one
+//! distributor learn another's terms.
+//!
+//! Settlement happens off this contract: the issuer holds a confidential
+//! balance and pays each introducer from it, applying that introducer's own
+//! privately negotiated rate. `claim` is the authorization and the settlement
+//! record — it proves the commission has vested and marks it taken — and it
+//! emits only attribution ids, never a number.
+//!
+//! What an observer can still derive: who introduced whom, and how much each
+//! investor subscribed (both are public transfers). What they cannot: any
+//! rate, any fee, or any introducer's earnings.
 
 use soroban_sdk::{
-    auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation},
-    contract, contractclient, contracterror, contractimpl, contracttype, token, vec, Address,
-    Env, IntoVal, String, Symbol, Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env,
+    String, Vec,
 };
-
-/// Circuit identifiers, mirroring OpenZeppelin's `CircuitType`. The numeric
-/// values are part of the on-chain interface and must not change.
-#[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum CircuitType {
-    Register = 0,
-    Withdraw = 1,
-    Transfer = 2,
-    SpenderTransfer = 3,
-    SetSpender = 4,
-    Clawback = 100,
-}
-
-/// The subset of OpenZeppelin's confidential token we call.
-///
-/// Only `deposit`. A confidential *transfer* has to be signed by the party
-/// holding the opening of the spending commitment, and proving happens
-/// client-side — a contract cannot do it. `deposit` needs no proof and a
-/// contract can authorize itself, which is what makes this design work.
-#[contractclient(name = "ConfidentialTokenClient")]
-pub trait ConfidentialToken {
-    fn deposit(e: Env, from: Address, to: Address, amount: i128);
-}
-
-const BPS_DENOMINATOR: i128 = 10_000;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -51,13 +33,8 @@ pub struct Config {
     pub usdc: Address,
     /// SAC address of the fund unit (classic asset, authorization required).
     pub unit: Address,
-    pub trail_fee_bps: u32,
     pub vesting_window_secs: u64,
     pub minimum: i128,
-    /// OpenZeppelin's confidential token, wrapping the same asset as `usdc`.
-    /// A claimed fee is deposited here, so the amount stops being public at
-    /// the moment it becomes the introducer's.
-    pub confidential_token: Address,
 }
 
 #[contracttype]
@@ -68,6 +45,8 @@ pub struct Introducer {
     pub display_name: String,
 }
 
+/// One introduction. Carries the AUM the commission is owed on, never the
+/// commission itself.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Attribution {
@@ -76,11 +55,11 @@ pub struct Attribution {
     pub investor: Address,
     pub subscribed: i128,
     pub units: i128,
-    pub fee: i128,
     pub at: u64,
-    /// When the fee becomes withdrawable. Before this the issuer can recover it.
+    /// When the commission on this introduction becomes payable.
     pub vests_at: u64,
-    pub settled: bool,
+    /// Marked when the introducer claims it; the issuer then settles off-chain.
+    pub claimed: bool,
     /// Clawed back by the issuer because the investor redeemed early.
     pub recovered: bool,
 }
@@ -90,7 +69,6 @@ pub enum DataKey {
     Config,
     Introducer(String),
     Attributions,
-    Claimed(String),
     NextId,
 }
 
@@ -103,23 +81,19 @@ pub enum Error {
     UnknownCode = 3,
     CodeTaken = 4,
     BelowMinimum = 5,
+    /// No introduction of this introducer's is vested and unclaimed.
     NothingToClaim = 6,
+    /// Introductions exist but none has vested yet.
     NotYetVested = 7,
     NotRecoverable = 8,
-    /// Reserved. Proof checking now lives inside the confidential token.
-    InvalidProof = 9,
 }
 
 #[contract]
 pub struct IntroducerRails;
 
-// Helpers live outside #[contractimpl] so they are not exported.
 impl IntroducerRails {
     fn config(env: &Env) -> Result<Config, Error> {
-        env.storage()
-            .instance()
-            .get(&DataKey::Config)
-            .ok_or(Error::NotInitialised)
+        env.storage().instance().get(&DataKey::Config).ok_or(Error::NotInitialised)
     }
 
     fn attributions(env: &Env) -> Vec<Attribution> {
@@ -135,13 +109,6 @@ impl IntroducerRails {
             .get(&DataKey::Introducer(code.clone()))
             .ok_or(Error::UnknownCode)
     }
-
-    fn claimed(env: &Env, code: &String) -> i128 {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Claimed(code.clone()))
-            .unwrap_or(0)
-    }
 }
 
 #[contractimpl]
@@ -151,10 +118,8 @@ impl IntroducerRails {
         issuer: Address,
         usdc: Address,
         unit: Address,
-        trail_fee_bps: u32,
         vesting_window_secs: u64,
         minimum: i128,
-        confidential_token: Address,
     ) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialised);
@@ -162,15 +127,7 @@ impl IntroducerRails {
         issuer.require_auth();
         env.storage().instance().set(
             &DataKey::Config,
-            &Config {
-                issuer,
-                usdc,
-                unit,
-                trail_fee_bps,
-                vesting_window_secs,
-                minimum,
-                confidential_token,
-            },
+            &Config { issuer, usdc, unit, vesting_window_secs, minimum },
         );
         env.storage().instance().set(&DataKey::NextId, &0u32);
         env.storage()
@@ -179,8 +136,6 @@ impl IntroducerRails {
         Ok(())
     }
 
-    /// Register an introducer and claim a code. Anyone may register; the code
-    /// is first-come, and the owner is who gets paid.
     pub fn register_introducer(
         env: Env,
         owner: Address,
@@ -188,21 +143,11 @@ impl IntroducerRails {
         display_name: String,
     ) -> Result<Introducer, Error> {
         owner.require_auth();
-        if env
-            .storage()
-            .persistent()
-            .has(&DataKey::Introducer(code.clone()))
-        {
+        if env.storage().persistent().has(&DataKey::Introducer(code.clone())) {
             return Err(Error::CodeTaken);
         }
-        let introducer = Introducer {
-            code: code.clone(),
-            owner,
-            display_name,
-        };
-        env.storage()
-            .persistent()
-            .set(&DataKey::Introducer(code), &introducer);
+        let introducer = Introducer { code: code.clone(), owner, display_name };
+        env.storage().persistent().set(&DataKey::Introducer(code), &introducer);
         Ok(introducer)
     }
 
@@ -210,8 +155,9 @@ impl IntroducerRails {
         Self::introducer(&env, &code)
     }
 
-    /// Subscribe through an introducer's code. Pulls USDC from the investor,
-    /// issues units, and records the attribution with its vesting deadline.
+    /// Subscribe through an introducer's code. Pulls USDC, issues units, and
+    /// records the introduction with its vesting deadline. No commission is
+    /// computed here — this contract never sees a rate.
     pub fn subscribe(
         env: Env,
         investor: Address,
@@ -233,7 +179,6 @@ impl IntroducerRails {
         let units = usdc_amount;
         token::Client::new(&env, &cfg.unit).transfer(&here, &investor, &units);
 
-        let fee = usdc_amount * (cfg.trail_fee_bps as i128) / BPS_DENOMINATOR;
         let now = env.ledger().timestamp();
         let id: u32 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
 
@@ -243,10 +188,9 @@ impl IntroducerRails {
             investor,
             subscribed: usdc_amount,
             units,
-            fee,
             at: now,
             vests_at: now + cfg.vesting_window_secs,
-            settled: false,
+            claimed: false,
             recovered: false,
         };
 
@@ -258,7 +202,6 @@ impl IntroducerRails {
         Ok(attribution)
     }
 
-    /// One introducer's own book.
     pub fn get_book(env: Env, code: String) -> Vec<Attribution> {
         let mut out = Vec::new(&env);
         for a in Self::attributions(&env).iter() {
@@ -269,107 +212,72 @@ impl IntroducerRails {
         out
     }
 
-    /// Every attribution. Issuer view.
     pub fn get_ledger(env: Env) -> Vec<Attribution> {
         Self::attributions(&env)
     }
 
-    /// Withdrawable right now: vested, not recovered, not already paid.
-    pub fn claimable(env: Env, code: String) -> i128 {
+    /// The AUM an introducer may currently claim commission on: vested, not
+    /// recovered, not already claimed. This is a subscription total, NOT a
+    /// payable amount — turning it into money needs the rate, which lives
+    /// only with the issuer and that introducer.
+    pub fn claimable_basis(env: Env, code: String) -> i128 {
         let now = env.ledger().timestamp();
-        let mut vested = 0i128;
+        let mut basis = 0i128;
         for a in Self::attributions(&env).iter() {
-            if a.code == code && !a.recovered && a.vests_at <= now {
-                vested += a.fee;
+            if a.code == code && !a.recovered && !a.claimed && a.vests_at <= now {
+                basis += a.subscribed;
             }
         }
-        vested - Self::claimed(&env, &code)
+        basis
     }
 
-    /// Pay out the vested portion. Rejects `NotYetVested` when a fee exists but
-    /// is still inside its window — a different sentence on screen from having
-    /// earned nothing at all.
-    pub fn claim_fee(env: Env, code: String) -> Result<i128, Error> {
-        let cfg = Self::config(&env)?;
+    /// Mark every vested, unclaimed introduction of this introducer's as
+    /// claimed, and publish their ids. The issuer's settlement service applies
+    /// the private rate and pays confidentially.
+    ///
+    /// The event carries ids only. Publishing a total here would hand an
+    /// observer the subscription basis in one number and put us back where we
+    /// started.
+    pub fn claim(env: Env, code: String) -> Result<u32, Error> {
+        Self::config(&env)?;
         let introducer = Self::introducer(&env, &code)?;
         introducer.owner.require_auth();
 
-
         let now = env.ledger().timestamp();
-        let mut vested = 0i128;
-        let mut accrued = 0i128;
-        for a in Self::attributions(&env).iter() {
-            if a.code != code || a.recovered {
-                continue;
-            }
-            accrued += a.fee;
-            if a.vests_at <= now {
-                vested += a.fee;
-            }
-        }
-
-        let claimed = Self::claimed(&env, &code);
-        let payable = vested - claimed;
-        if payable <= 0 {
-            if accrued - claimed > 0 {
-                return Err(Error::NotYetVested);
-            }
-            return Err(Error::NothingToClaim);
-        }
-
-        // The fee is public while it vests — that is what lets the issuer
-        // recover it. At the moment it becomes the introducer's, it moves into
-        // the confidential token and the amount stops being readable by
-        // anyone but the introducer, the issuer and the auditor.
-        let here = env.current_contract_address();
-
-        // The token pulls the underlying with its own `transfer` call, one
-        // frame deeper than ours. A contract has to pre-authorize anything it
-        // is the source of below its own frame, otherwise the host rejects it
-        // with Auth(InvalidAction) — the error names this function directly.
-        env.authorize_as_current_contract(vec![
-            &env,
-            InvokerContractAuthEntry::Contract(SubContractInvocation {
-                context: ContractContext {
-                    contract: cfg.usdc.clone(),
-                    fn_name: Symbol::new(&env, "transfer"),
-                    args: vec![
-                        &env,
-                        here.into_val(&env),
-                        cfg.confidential_token.into_val(&env),
-                        payable.into_val(&env),
-                    ],
-                },
-                sub_invocations: vec![&env],
-            }),
-        ]);
-
-        ConfidentialTokenClient::new(&env, &cfg.confidential_token).deposit(
-            &here,
-            &introducer.owner,
-            &payable,
-        );
-        env.storage()
-            .persistent()
-            .set(&DataKey::Claimed(code), &(claimed + payable));
-
-        // Mark the vested rows settled so the issuer ledger reads correctly.
         let mut all = Self::attributions(&env);
+        let mut ids = Vec::new(&env);
+        let mut unvested = 0u32;
+
         for i in 0..all.len() {
             let mut a = all.get_unchecked(i);
-            if a.vests_at <= now && !a.recovered && !a.settled {
-                a.settled = true;
-                all.set(i, a);
+            if a.code != code || a.recovered || a.claimed {
+                continue;
             }
+            if a.vests_at > now {
+                unvested += 1;
+                continue;
+            }
+            ids.push_back(a.id);
+            a.claimed = true;
+            all.set(i, a);
         }
-        env.storage().instance().set(&DataKey::Attributions, &all);
 
-        Ok(payable)
+        if ids.is_empty() {
+            // Distinguish "you have earned nothing" from "you have earned
+            // something that has not vested" — different sentences on screen.
+            return Err(if unvested > 0 { Error::NotYetVested } else { Error::NothingToClaim });
+        }
+
+        env.storage().instance().set(&DataKey::Attributions, &all);
+        let count = ids.len();
+        env.events().publish((symbol_short!("claimed"), code), ids);
+        Ok(count)
     }
 
-    /// Issuer recovers a fee whose investor redeemed inside the window.
-    /// All-or-nothing; real chargeback is pro-rata — see DECISIONS.md D9.
-    pub fn recover_fee(env: Env, id: u32) -> Result<i128, Error> {
+    /// Issuer recovers an introduction whose investor redeemed inside the
+    /// window. All-or-nothing; real chargeback is pro-rata — see DECISIONS.md
+    /// D9. No amount is involved: the issuer simply never settles it.
+    pub fn recover(env: Env, id: u32) -> Result<(), Error> {
         let cfg = Self::config(&env)?;
         cfg.issuer.require_auth();
 
@@ -380,14 +288,13 @@ impl IntroducerRails {
             if a.id != id {
                 continue;
             }
-            if a.settled || a.recovered || a.vests_at <= now {
+            if a.claimed || a.recovered || a.vests_at <= now {
                 return Err(Error::NotRecoverable);
             }
-            let fee = a.fee;
             a.recovered = true;
             all.set(i, a);
             env.storage().instance().set(&DataKey::Attributions, &all);
-            return Ok(fee);
+            return Ok(());
         }
         Err(Error::NotRecoverable)
     }
