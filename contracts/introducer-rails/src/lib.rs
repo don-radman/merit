@@ -147,7 +147,13 @@ impl IntroducerRails {
             return Err(Error::CodeTaken);
         }
         let introducer = Introducer { code: code.clone(), owner, display_name };
-        env.storage().persistent().set(&DataKey::Introducer(code), &introducer);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Introducer(code), &introducer);
+        env.events().publish(
+            (symbol_short!("register"), introducer.code.clone()),
+            introducer.owner.clone(),
+        );
         Ok(introducer)
     }
 
@@ -198,6 +204,15 @@ impl IntroducerRails {
         all.push_back(attribution.clone());
         env.storage().instance().set(&DataKey::Attributions, &all);
         env.storage().instance().set(&DataKey::NextId, &(id + 1));
+
+        // Both values are already public: the subscription is a public SAC
+        // transfer and the attribution is a public read. Emitting them lets an
+        // indexer WATCH attribution happen instead of polling get_ledger and
+        // diffing it. No rate is derivable from either.
+        env.events().publish(
+            (symbol_short!("subscribe"), attribution.code.clone()),
+            (attribution.id, attribution.subscribed),
+        );
 
         Ok(attribution)
     }
@@ -292,8 +307,12 @@ impl IntroducerRails {
                 return Err(Error::NotRecoverable);
             }
             a.recovered = true;
+            let code = a.code.clone();
             all.set(i, a);
             env.storage().instance().set(&DataKey::Attributions, &all);
+            // A clawback is the one action a distributor most wants evidence
+            // of. Silent recovery leaves none.
+            env.events().publish((symbol_short!("recovered"), code), id);
             return Ok(());
         }
         Err(Error::NotRecoverable)

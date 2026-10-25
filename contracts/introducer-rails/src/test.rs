@@ -2,7 +2,7 @@
 
 use super::*;
 use soroban_sdk::{
-    testutils::{Address as _, Ledger},
+    testutils::{Address as _, Events, Ledger},
     token, Address, Env,
 };
 
@@ -181,4 +181,36 @@ fn rejects_unknown_codes_small_subscriptions_and_duplicate_codes() {
         f.client.try_register_introducer(&f.issuer, &code(&f.env), &String::from_str(&f.env, "x")),
         Err(Ok(Error::CodeTaken)),
     );
+}
+
+
+/// Events from OUR contract for the LAST invocation. `all()` is per-call, not
+/// cumulative, and `subscribe` also triggers two SAC transfer events that are
+/// not ours — hence the filter.
+fn our_events(f: &Fixture) -> usize {
+    f.env.events().all().filter_by_contract(&f.contract_id).events().len()
+}
+
+#[test]
+fn no_state_change_is_silent() {
+    let f = setup();
+
+    f.client.register_introducer(&f.introducer, &code(&f.env), &String::from_str(&f.env, "RFO"));
+    assert_eq!(our_events(&f), 1, "register_introducer must emit");
+
+    let a = f.client.subscribe(&f.investor, &code(&f.env), &250_000i128);
+    assert_eq!(our_events(&f), 1, "subscribe must emit");
+
+    // A clawback is the one action a distributor most wants evidence of.
+    f.client.recover(&a.id);
+    assert_eq!(our_events(&f), 1, "recover must emit");
+
+    f.client.subscribe(&f.investor, &code(&f.env), &400_000i128);
+    f.env.ledger().with_mut(|l| l.timestamp += WINDOW + 1);
+    f.client.claim(&code(&f.env));
+    assert_eq!(our_events(&f), 1, "claim must emit");
+
+    // A refused call changes nothing, so it must say nothing.
+    let _ = f.client.try_claim(&code(&f.env));
+    assert_eq!(our_events(&f), 0, "a refused claim must stay silent");
 }
