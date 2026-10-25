@@ -355,6 +355,10 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
         feeAccrued: feeOn(s.subscribed, rateFor(introducer.code)),
         vestsAt: vestsAtFor(s.at),
         vested: isVested(s.at),
+        // Only these two. The stub keeps claims as a running total per
+        // introducer, not against a row, so it cannot say which row was the
+        // one claimed — and it has no clawback model at all.
+        state: isVested(s.at) ? ('claimable' as const) : ('vesting' as const),
       }));
 
       const feeAccrued = accruedFor(introducer.code);

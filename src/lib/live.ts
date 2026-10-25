@@ -60,6 +60,25 @@ export interface LiveConfig extends ClientConfig {
   networkPassphrase?: string;
   /** This introducer's own negotiated rate. Local, never fetched. */
   trailFeeBps: number;
+  /**
+   * The vesting window the deployed contract enforces, in seconds. Config
+   * because `initialise` fixes it and there is no getter to read it back, so
+   * this has to be kept in step with the deployment by hand.
+   */
+  vestingWindowSecs: number;
+  /**
+   * Rates by introducer code, for the one party that legitimately knows more
+   * than one: the ISSUER negotiated them all and owes them all, so its ledger
+   * cannot be costed from a single number.
+   *
+   * An introducer's client is deliberately NOT given this — it gets
+   * `trailFeeBps` alone, so it cannot compute anybody else's fee even by
+   * accident. That is the privacy model expressed in the type rather than
+   * asserted in a comment.
+   *
+   * Unset, or missing a code, falls back to `trailFeeBps`.
+   */
+  rates?: Record<string, number>;
 }
 
 /** One attribution as the contract stores it: no fee, no rate. */
@@ -75,8 +94,22 @@ interface ChainAttribution {
   recovered: boolean;
 }
 
-/** Contract amounts are whole units; the UI wants a 2dp decimal string. */
-const toAmount = (raw: bigint): Amount => `${raw}.00`;
+/**
+ * Contract amounts are STROOPS — 7 decimal places. TUSDC and CSDIF are classic
+ * Stellar assets, so the SAC moves them in stroops and `subscribe` takes them
+ * that way: 250,000.00 arrives here as 2500000000000n.
+ *
+ * Done with bigint throughout on purpose. These are i128 on chain, and a
+ * Number round-trip starts losing integers above 2^53, so dividing first and
+ * formatting second would quietly corrupt large subscriptions.
+ */
+const STROOPS = 10_000_000n;
+const toAmount = (raw: bigint): Amount => {
+  const neg = raw < 0n;
+  const abs = neg ? -raw : raw;
+  const cents = (abs * 100n + STROOPS / 2n) / STROOPS; // round half up
+  return `${neg ? '-' : ''}${cents / 100n}.${String(cents % 100n).padStart(2, '0')}`;
+};
 const iso = (secs: bigint): string =>
   new Date(Number(secs) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
@@ -113,9 +146,15 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
 
   const str = (s: string) => nativeToScVal(s, { type: 'string' });
 
-  /** Apply the introducer's LOCAL rate. The chain never saw it. */
+  const bpsFor = (code: string): number => config.rates?.[code] ?? config.trailFeeBps;
+
+  /** Apply a LOCAL rate at `bps`. The chain never saw it. */
+  const feeAt = (subscribed: bigint, bps: number): Amount =>
+    fromCents(Math.round((toCents(toAmount(subscribed)) * bps) / 10_000));
+
+  /** Apply the introducer's own rate — the only one their client holds. */
   const feeOnChainAmount = (subscribed: bigint): Amount =>
-    fromCents(Math.round((toCents(toAmount(subscribed)) * config.trailFeeBps) / 10_000));
+    feeAt(subscribed, config.trailFeeBps);
 
   return {
     ...stub,
@@ -139,24 +178,44 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
       const code = config.code ?? '';
       const rows = await read<ChainAttribution[]>('get_book', [str(code)]);
       const resolved = await read<{ display_name: string }>('get_introducer', [str(code)]);
+      // The contract's own answer, computed against the LEDGER clock, already
+      // excluding claimed and recovered rows. `vested` below is derived from
+      // the browser clock and only decides a row's label; a wrong local clock
+      // must not be able to offer a claim the contract would refuse, so what
+      // the claim is worth comes from here. This is what claimable_basis is
+      // for: a basis, with the rate applied locally and privately.
+      const basis = await read<bigint>('claimable_basis', [str(code)]);
 
-      const entries: BookEntry[] = rows
-        .filter((r) => !r.recovered)
-        .map((r) => ({
+      const now = Date.now();
+      const entries: BookEntry[] = rows.map((r) => {
+        const vested = Number(r.vests_at) * 1000 <= now;
+        return {
           investorLabel: `${r.investor.slice(0, 4)}…${r.investor.slice(-4)}`,
           subscribed: toAmount(r.subscribed),
           at: iso(r.at),
           feeAccrued: feeOnChainAmount(r.subscribed),
           vestsAt: iso(r.vests_at),
-          vested: Number(r.vests_at) * 1000 <= Date.now(),
-        }));
+          vested,
+          // A clawed-back row STAYS on the book. Filtering it out made the one
+          // action an introducer most needs explained simply disappear from
+          // their screen, which is worse than showing it and saying why.
+          state: r.recovered
+            ? 'recovered'
+            : r.claimed
+              ? 'claimed'
+              : vested
+                ? 'claimable'
+                : 'vesting',
+        };
+      });
 
-      const vested = entries.filter((e) => e.vested);
-      const feeAccrued = addAmounts(...entries.map((e) => e.feeAccrued));
-      const feeVested = addAmounts(...vested.map((e) => e.feeAccrued));
+      // A recovered introduction never settles, so it owes nothing and counts
+      // for nothing — it is on the book as evidence, not as an earning.
+      const earning = entries.filter((e) => e.state !== 'recovered');
+      const feeAccrued = addAmounts(...earning.map((e) => e.feeAccrued));
       // Claimed rows are settled off-chain, so "claimed" on chain IS paid.
       const feeClaimed = addAmounts(
-        ...rows.filter((r) => r.claimed && !r.recovered).map((r) => feeOnChainAmount(r.subscribed)),
+        ...entries.filter((e) => e.state === 'claimed').map((e) => e.feeAccrued),
       );
 
       return {
@@ -164,14 +223,17 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
         displayName: resolved.display_name,
         trailFeeBps: config.trailFeeBps,
         vestingWindowDays: VESTING_WINDOW_DAYS,
+        vestingWindowSecs: config.vestingWindowSecs,
         entries,
         totals: {
-          introducedCount: entries.length,
-          subscribedTotal: addAmounts(...entries.map((e) => e.subscribed)),
+          introducedCount: earning.length,
+          subscribedTotal: addAmounts(...earning.map((e) => e.subscribed)),
           feeAccrued,
           feeClaimed,
-          feeClaimable: subtractAmounts(feeVested, feeClaimed),
-          feeVesting: subtractAmounts(feeAccrued, feeVested),
+          feeClaimable: feeOnChainAmount(basis),
+          feeVesting: addAmounts(
+            ...entries.filter((e) => e.state === 'vesting').map((e) => e.feeAccrued),
+          ),
         },
       };
     },
@@ -185,8 +247,10 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
         subscribed: toAmount(r.subscribed),
         units: toAmount(r.units),
         at: iso(r.at),
-        // The issuer sees its own liability; the rate is its own too.
-        feeAccrued: feeOnChainAmount(r.subscribed),
+        // Each row at ITS introducer's rate. Costing the whole ledger from one
+        // number understates or overstates every introducer but one, and the
+        // premise of D10 is that these rates differ.
+        feeAccrued: feeAt(r.subscribed, bpsFor(r.code)),
         feeSettled: r.claimed,
         vestsAt: iso(r.vests_at),
         recoverable: !r.recovered && !r.claimed && Number(r.vests_at) * 1000 > Date.now(),

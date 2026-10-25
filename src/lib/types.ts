@@ -235,6 +235,19 @@ export interface BookEntry {
    * able to enable a claim button the contract will reject.
    */
   vested: boolean;
+  /**
+   * Which of the four states this introduction is in, for labelling a row.
+   *
+   * Added rather than changed: every field above still means what it did, so
+   * code that ignores this keeps working.
+   *
+   * ONLY the live client fills all four. The stub records claims as a running
+   * total per introducer rather than against a row, so it can honestly say
+   * 'vesting' or 'claimable' and nothing more. Treat this as a label, never as
+   * the authority for what a claim pays — that is `totals.feeClaimable`, which
+   * the live client takes from the contract.
+   */
+  state?: 'vesting' | 'claimable' | 'claimed' | 'recovered';
 }
 
 export interface IntroducerBook {
@@ -248,6 +261,20 @@ export interface IntroducerBook {
    * insurance commission chargeback.
    */
   vestingWindowDays: number;
+  /**
+   * The window the DEPLOYED contract actually enforces, in seconds.
+   *
+   * Present on the live client only, and it will not agree with
+   * `vestingWindowDays` on a demo deployment: 90 days is unobservable on
+   * testnet, so the seeded instance uses minutes to make the whole lifecycle
+   * visible. Prefer this when it is set — writing "90 days" on screen while
+   * the chain vests in five minutes is the kind of small lie that loses an
+   * audience the moment someone checks.
+   *
+   * The window is fixed at `initialise` and the contract exposes no getter, so
+   * this comes from client config and must be set to match the deployment.
+   */
+  vestingWindowSecs?: number;
   entries: BookEntry[];
   totals: {
     introducedCount: number;
