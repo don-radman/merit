@@ -149,7 +149,8 @@ why not Turborepo.
 | `src/screens/`, `src/components/` | UI dev | npm / Vite |
 | `src/lib/` | **shared — frozen** | npm |
 | `src/bindings/` | contracts dev (generated, committed) | `stellar contract bindings typescript` |
-| `contracts/` | contracts dev | cargo workspace |
+| `Cargo.toml`, `AGENTS.md` | contracts dev | cargo workspace root |
+| `contracts/introducer-rails/` | contracts dev | cargo crate (Soroban) |
 | `scripts/` | contracts dev | node + Stellar CLI |
 
 Three rules that keep two people out of each other's way:
