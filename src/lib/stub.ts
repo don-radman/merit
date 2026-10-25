@@ -54,6 +54,7 @@ import {
   fromCents,
   linkFor,
   isVested,
+  rateFor,
   subtractAmounts,
   toCents,
   unitsFor,
@@ -131,7 +132,9 @@ const hash = () =>
 
 function accruedFor(code: IntroducerCode): string {
   return addAmounts(
-    ...state.subs.filter((s) => s.introducerCode === code).map((s) => feeOn(s.subscribed)),
+    ...state.subs
+      .filter((s) => s.introducerCode === code)
+      .map((s) => feeOn(s.subscribed, rateFor(code))),
   );
 }
 
@@ -140,7 +143,7 @@ function vestedAccruedFor(code: IntroducerCode): string {
   return addAmounts(
     ...state.subs
       .filter((s) => s.introducerCode === code && isVested(s.at))
-      .map((s) => feeOn(s.subscribed)),
+      .map((s) => feeOn(s.subscribed, rateFor(code))),
   );
 }
 
@@ -323,7 +326,14 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       checkArmed();
       await sleep(STAGE_DELAY_MS);
       const code = `CALDER-${hash().slice(0, 3).toUpperCase()}`;
-      INTRODUCERS.push({ code, displayName: input.displayName, feeClaimed: '0.00' });
+      // A new introducer starts on the default rate until the issuer
+      // negotiates one with them. The rate never reaches the chain.
+      INTRODUCERS.push({
+        code,
+        displayName: input.displayName,
+        trailFeeBps: TRAIL_FEE_BPS,
+        feeClaimed: '0.00',
+      });
       state.claimed[code] = '0.00';
       bookCode = code;
       return { code, link: linkFor(code) };
@@ -342,7 +352,7 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
         investorLabel: s.label,
         subscribed: s.subscribed,
         at: s.at,
-        feeAccrued: feeOn(s.subscribed),
+        feeAccrued: feeOn(s.subscribed, rateFor(introducer.code)),
         vestsAt: vestsAtFor(s.at),
         vested: isVested(s.at),
       }));
@@ -354,7 +364,7 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       return {
         code: introducer.code,
         displayName: introducer.displayName,
-        trailFeeBps: TRAIL_FEE_BPS,
+        trailFeeBps: rateFor(introducer.code),
         vestingWindowDays: VESTING_WINDOW_DAYS,
         entries,
         totals: {
@@ -420,7 +430,7 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
           subscribed: s.subscribed,
           units: unitsFor(s.subscribed),
           at: s.at,
-          feeAccrued: feeOn(s.subscribed),
+          feeAccrued: feeOn(s.subscribed, rateFor(s.introducerCode)),
           feeSettled: s.feeSettled,
           vestsAt: vestsAtFor(s.at),
           // The issuer can still recover a fee that has accrued, not vested
@@ -455,7 +465,9 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       checkArmed();
       await sleep(STAGE_DELAY_MS);
 
-      const feeAccruedTotal = addAmounts(...state.subs.map((s) => feeOn(s.subscribed)));
+      const feeAccruedTotal = addAmounts(
+        ...state.subs.map((s) => feeOn(s.subscribed, rateFor(s.introducerCode))),
+      );
       const feesSettledTotal = addAmounts(...Object.values(state.claimed));
       const outstanding = subtractAmounts(feeAccruedTotal, feesSettledTotal);
 

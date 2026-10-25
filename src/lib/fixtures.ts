@@ -30,7 +30,14 @@ export const FUND = {
   domicile: 'Singapore',
 };
 
-/** Trail fee the issuer pays the introducer, in basis points. 50 = 0.50%. */
+/**
+ * The DEFAULT trail fee, in basis points. 50 = 0.50%.
+ *
+ * Rates are negotiated per introducer and differ — that is the whole point of
+ * keeping them off the chain, and a demo where every introducer has the same
+ * rate quietly refutes its own privacy claim. Each fixture introducer carries
+ * its own.
+ */
 export const TRAIL_FEE_BPS = 50;
 
 /** Who holds the auditor view key in the demo. */
@@ -91,6 +98,8 @@ export const STAGE_DELAY_MS = 450;
 export interface FixtureIntroducer {
   code: IntroducerCode;
   displayName: string;
+  /** This introducer's own negotiated rate. Never on chain. */
+  trailFeeBps: number;
   /** Already claimed before the demo starts, so the book is not all-zero. */
   feeClaimed: Amount;
 }
@@ -99,11 +108,13 @@ export const INTRODUCERS: FixtureIntroducer[] = [
   {
     code: 'CALDER-PR7',
     displayName: 'Raghunathan Family Office',
+    trailFeeBps: 50,
     feeClaimed: '2000.00',
   },
   {
     code: 'CALDER-DO2',
     displayName: 'Okonkwo Private Clients',
+    trailFeeBps: 70,
     feeClaimed: '0.00',
   },
 ];
@@ -230,10 +241,14 @@ export function unitsFor(subscribed: Amount, unitPrice: Amount = FUND.unitPrice)
 
 export const ISSUER_TOTALS = (() => {
   const subscribedTotal = addAmounts(...SUBSCRIPTIONS.map((s) => s.subscribed));
-  const feeAccruedTotal = addAmounts(...SUBSCRIPTIONS.map((s) => feeOn(s.subscribed)));
+  const feeAccruedTotal = addAmounts(
+    ...SUBSCRIPTIONS.map((s) => feeOn(s.subscribed, rateFor(s.introducerCode))),
+  );
   const feesSettledTotal = addAmounts(...INTRODUCERS.map((i) => i.feeClaimed));
   const feeVestingTotal = addAmounts(
-    ...SUBSCRIPTIONS.filter((s) => !s.vested).map((s) => feeOn(s.subscribed)),
+    ...SUBSCRIPTIONS.filter((s) => !s.vested).map((s) =>
+      feeOn(s.subscribed, rateFor(s.introducerCode)),
+    ),
   );
   return {
     investorCount: SUBSCRIPTIONS.length,
@@ -248,11 +263,17 @@ export const ISSUER_TOTALS = (() => {
   };
 })();
 
+/** An introducer's own rate. Falls back to the default for unknown codes. */
+export function rateFor(code: IntroducerCode): number {
+  const found = INTRODUCERS.find((i) => i.code === code);
+  return found ? found.trailFeeBps : TRAIL_FEE_BPS;
+}
+
 /** Fee accrued for one introducer, counting only entries past their window. */
 export function vestedFor(code: IntroducerCode): Amount {
   return addAmounts(
     ...SUBSCRIPTIONS.filter((s) => s.introducerCode === code && s.vested).map((s) =>
-      feeOn(s.subscribed),
+      feeOn(s.subscribed, rateFor(code)),
     ),
   );
 }

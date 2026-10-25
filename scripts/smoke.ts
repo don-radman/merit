@@ -32,9 +32,9 @@ function ok(label: string, cond: boolean) { eq(label, cond, true); }
 eq('feeOn 1,000,000 @ 50bps', feeOn('1000000.00'), '5000.00');
 eq('feeOn 250,000 @ 50bps', feeOn('250000.00'), '1250.00');
 eq('totals.subscribedTotal', ISSUER_TOTALS.subscribedTotal, '2250000.00');
-eq('totals.feeAccruedTotal', ISSUER_TOTALS.feeAccruedTotal, '11250.00');
+eq('totals.feeAccruedTotal', ISSUER_TOTALS.feeAccruedTotal, '12450.00');
 eq('totals.feesSettledTotal', ISSUER_TOTALS.feesSettledTotal, '2000.00');
-eq('totals.outstandingLiability', ISSUER_TOTALS.outstandingFeeLiability, '9250.00');
+eq('totals.outstandingLiability', ISSUER_TOTALS.outstandingFeeLiability, '10450.00');
 eq('totals.unitsIssued', ISSUER_TOTALS.unitsIssued, '2250000.00');
 eq('addAmounts carries cents', addAmounts('0.70', '0.40'), '1.10');
 
@@ -104,6 +104,9 @@ eq('book feeClaimed', book.totals.feeClaimed, '2000.00');
 eq('book feeClaimable is VESTED - claimed', book.totals.feeClaimable, '4250.00');
 eq('book feeVesting', book.totals.feeVesting, '4500.00');
 eq('book vestingWindowDays', book.totals ? book.vestingWindowDays : 0, 90);
+// The rate is negotiated per introducer and is never on chain. If every
+// introducer shared one rate, "private rate" would be refuted by a grep.
+eq('PR7 has its own rate', book.trailFeeBps, 50);
 eq('entries carry vesting', book.entries.every((e) => typeof e.vested === 'boolean' && !!e.vestsAt), true);
 eq('some vested, some not', new Set(book.entries.map((e) => e.vested)).size, 2);
 eq('trailFeeBps', book.totals.feeAccrued, feeOn(book.totals.subscribedTotal));
@@ -124,7 +127,9 @@ eq('second claim rejects as not-yet-vested', nothing, 'not-yet-vested');
 const intro2 = createStubClient({ role: 'introducer', code: 'CALDER-DO2' });
 const book2 = await intro2.getBook();
 eq('DO2 has nothing claimable', book2.totals.feeClaimable, '0.00');
-eq('DO2 has it all vesting', book2.totals.feeVesting, '3000.00');
+eq('DO2 has it all vesting', book2.totals.feeVesting, '4200.00');
+eq('DO2 has a DIFFERENT rate from PR7', book2.trailFeeBps, 70);
+eq('rates actually differ', book.trailFeeBps !== book2.trailFeeBps, true);
 let do2 = '';
 try { await intro2.claimFee(); } catch (e: any) { do2 = e.code; }
 eq('DO2 claim rejects as not-yet-vested', do2, 'not-yet-vested');
@@ -135,8 +140,8 @@ const ledger = await issuer.getLedger();
 eq('ledger rows', ledger.rows.length, 5);
 eq('ledger subscribedTotal', ledger.totals.subscribedTotal, '2750000.00');
 eq('ledger introducerCount', ledger.totals.introducerCount, 2);
-eq('ledger outstanding', ledger.totals.outstandingFeeLiability, '7500.00');
-eq('ledger feeVestingTotal', ledger.totals.feeVestingTotal, '7500.00');
+eq('ledger outstanding', ledger.totals.outstandingFeeLiability, '8700.00');
+eq('ledger feeVestingTotal', ledger.totals.feeVestingTotal, '8700.00');
 eq('issuer can recover unvested rows', ledger.rows.filter((r) => r.recoverable).length, 3);
 
 const att = await issuer.getAuditorAttestation();
@@ -160,7 +165,7 @@ ok('network errors are retryable', retryable);
 await issuer.resetDemo();
 const reseeded = await issuer.getLedger();
 eq('reset restores row count', reseeded.rows.length, 4);
-eq('reset restores liability', reseeded.totals.outstandingFeeLiability, '9250.00');
+eq('reset restores liability', reseeded.totals.outstandingFeeLiability, '10450.00');
 
 // --- report ---------------------------------------------------------------
 console.log(`\n  ${pass} passed, ${fails.length} failed`);

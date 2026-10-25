@@ -32,7 +32,7 @@ const STAGES: Array<{ id: SubscriptionStage; label: string; note?: string }> = [
   {
     id: 'generating-proof',
     label: "Sealing your introducer's fee",
-    note: 'The slowest step. The fee is being encrypted so that only the fund, your introducer and the auditor can read it — never other investors, and never the public.',
+    note: 'The slowest step. Your introducer\u2019s commission is paid confidentially \u2014 only they, the fund and an auditor can see it. Your subscription is public; what they earn on it is not.',
   },
   { id: 'accruing-fee', label: 'Recording the introduction' },
 ];
