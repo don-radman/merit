@@ -6,6 +6,11 @@ to a tokenized fund.
 **HackMeridian 2026** · Testnet only · fictional fund · play money
 **Tracks:** Stellar Unlocked · Stellar Composed
 
+On screen the product is called **Merit** — *credit where it's due*. Value earned through
+action; "on the merits" in legal and financial use; warm in everyday speech. *Introduced
+via Merit.* The repo keeps its working name; `PRODUCT.name` in `src/lib/fixtures.ts` is
+the one place the brand lives.
+
 ---
 
 ## The problem
