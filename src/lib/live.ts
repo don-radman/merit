@@ -37,7 +37,7 @@ import {
   xdr,
 } from '@stellar/stellar-sdk';
 import { createStubClient } from '@/lib/stub.ts';
-import { FUND, VESTING_WINDOW_DAYS, addAmounts, fromCents, subtractAmounts, toCents } from '@/lib/fixtures.ts';
+import { FUND, INTRODUCERS, VESTING_WINDOW_DAYS, addAmounts, fromCents, subtractAmounts, toCents } from '@/lib/fixtures.ts';
 import type {
   Amount,
   AttributionLedger,
@@ -175,7 +175,10 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
     },
 
     async getBook(): Promise<IntroducerBook> {
-      const code = config.code ?? '';
+      // Same fallback the stub uses. `/scout` with no ?code= is a real route,
+      // and defaulting to '' sent get_introducer("") to the chain, which came
+      // back as a bare Error(Contract, #3) on screen.
+      const code = config.code ?? INTRODUCERS[0].code;
       const rows = await read<ChainAttribution[]>('get_book', [str(code)]);
       const resolved = await read<{ display_name: string }>('get_introducer', [str(code)]);
       // The contract's own answer, computed against the LEDGER clock, already
@@ -254,6 +257,19 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
         feeSettled: r.claimed,
         vestsAt: iso(r.vests_at),
         recoverable: !r.recovered && !r.claimed && Number(r.vests_at) * 1000 > Date.now(),
+        id: String(r.id),
+        // Must be set here. A consumer cannot work it out from the fields
+        // above: `recoverable` is false both for a clawed-back row and for a
+        // vested one, so anything deriving state without this showed a
+        // reversed introduction as ready to pay — and counted it in the
+        // payout total.
+        state: r.recovered
+          ? 'recovered'
+          : r.claimed
+            ? 'claimed'
+            : Number(r.vests_at) * 1000 <= Date.now()
+              ? 'claimable'
+              : 'vesting',
       }));
 
       const live = rows.filter((_, i) => !all[i].recovered);
