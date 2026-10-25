@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { MODE, createClient, setStubFailure } from '../lib/index.ts';
-import type { ClientErrorCode } from '../lib/index.ts';
-import { navigate } from '../route.ts';
-import type { Route } from '../route.ts';
+import { MODE, createClient, setStubFailure } from '@/lib/index.ts';
+import type { ClientErrorCode } from '@/lib/index.ts';
+import { navigate } from '@/route.ts';
+import type { Route } from '@/route.ts';
 
 /**
  * Dev-only toolbar. Two jobs, both aimed at the demo rather than at coding:

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import DevBar from './components/DevBar.tsx';
-import InvestorSubscribe from './screens/InvestorSubscribe.tsx';
-import IntroducerBook from './screens/IntroducerBook.tsx';
-import IssuerLedger from './screens/IssuerLedger.tsx';
-import { parseRoute } from './route.ts';
-import type { Route } from './route.ts';
+import DevBar from '@/components/DevBar.tsx';
+import InvestorSubscribe from '@/screens/InvestorSubscribe.tsx';
+import IntroducerBook from '@/screens/IntroducerBook.tsx';
+import IssuerLedger from '@/screens/IssuerLedger.tsx';
+import { parseRoute } from '@/route.ts';
+import type { Route } from '@/route.ts';
 
 export default function App() {
   const [route, setRoute] = useState<Route>(() =>

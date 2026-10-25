@@ -35,9 +35,9 @@ import type {
   SubscriptionStage,
   Timestamp,
   Wallet,
-} from './types.ts';
+} from '@/lib/types.ts';
 
-import { formatAmount } from './types.ts';
+import { formatAmount } from '@/lib/types.ts';
 
 import {
   AUDITOR,
@@ -58,7 +58,7 @@ import {
   toCents,
   unitsFor,
   vestsAtFor,
-} from './fixtures.ts';
+} from '@/lib/fixtures.ts';
 
 // ---------------------------------------------------------------------------
 // Errors

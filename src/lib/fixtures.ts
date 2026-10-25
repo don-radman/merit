@@ -14,7 +14,7 @@
  * All names, funds and figures are FICTIONAL.
  */
 
-import type { Amount, IntroducerCode, Timestamp } from './types.ts';
+import type { Amount, IntroducerCode, Timestamp } from '@/lib/types.ts';
 
 // ---------------------------------------------------------------------------
 // The fund

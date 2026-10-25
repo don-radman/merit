@@ -14,10 +14,10 @@
  *
  * Runs on plain node (>=23, native TS). No install, no chain, no browser.
  */
-import { createStubClient, setStubFailure } from '../src/lib/stub.ts';
-import { ISSUER_TOTALS, feeOn, addAmounts} from '../src/lib/fixtures.ts';
-import type { SubscriptionStage } from '../src/lib/types.ts';
-import { formatAmount, formatUsd } from '../src/lib/types.ts';
+import { createStubClient, setStubFailure } from '@/lib/stub.ts';
+import { ISSUER_TOTALS, feeOn, addAmounts} from '@/lib/fixtures.ts';
+import type { SubscriptionStage } from '@/lib/types.ts';
+import { formatAmount, formatUsd } from '@/lib/types.ts';
 
 let pass = 0;
 const fails: string[] = [];

@@ -3,18 +3,18 @@
  * =========================================================================
  * The UI imports from here and nowhere else:
  *
- *   import { createClient, formatAmount } from '../lib';
+ *   import { createClient, formatAmount } from '@/lib';
  *
  * Today every method is served by the stub. As each contract method lands,
  * implement it in `live.ts` and flip MODE — the UI does not change.
  */
 
-import { createStubClient } from './stub.ts';
-import type { ClientConfig, IntroducerRailsClient } from './types.ts';
+import { createStubClient } from '@/lib/stub.ts';
+import type { ClientConfig, IntroducerRailsClient } from '@/lib/types.ts';
 
-export * from './types.ts';
-export { setStubFailure } from './stub.ts';
-export { FUND, TRAIL_FEE_BPS, linkFor } from './fixtures.ts';
+export * from '@/lib/types.ts';
+export { setStubFailure } from '@/lib/stub.ts';
+export { FUND, TRAIL_FEE_BPS, linkFor } from '@/lib/fixtures.ts';
 
 export type ClientMode = 'stub' | 'live';
 

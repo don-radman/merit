@@ -4,7 +4,7 @@ import {
   createClient,
   formatAmount,
   formatUsd,
-} from '../lib/index.ts';
+} from '@/lib/index.ts';
 import type {
   ClientError,
   ClientErrorCode,
@@ -13,7 +13,7 @@ import type {
   SubscriptionReceipt,
   SubscriptionStage,
   Wallet,
-} from '../lib/index.ts';
+} from '@/lib/index.ts';
 
 /**
  * Screen 1 of 3 — the one that is never cut.
