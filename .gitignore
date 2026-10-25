@@ -9,6 +9,7 @@ contracts/target
 
 # stellar CLI local state — identities and secret keys live here
 .stellar
+.soroban
 
 # env
 .env
