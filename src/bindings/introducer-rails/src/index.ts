@@ -34,7 +34,7 @@ if (typeof window !== "undefined") {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CD55RTP347AHOKTC57QRHNTTXDIST7Q3UITD5VEJXWTWX73DD6Y2TEGH",
+    contractId: "CBG7RUBLJTIDEY2CQNW2OV2NRRL2LNUQ753DH7IHLHAVVDZTPFMDVQQC",
   }
 } as const
 
@@ -46,7 +46,11 @@ export const Errors = {
   5: {message:"BelowMinimum"},
   6: {message:"NothingToClaim"},
   7: {message:"NotYetVested"},
-  8: {message:"NotRecoverable"}
+  8: {message:"NotRecoverable"},
+  /**
+   * Reserved. Proof checking now lives inside the confidential token.
+   */
+  9: {message:"InvalidProof"}
 }
 
 
@@ -113,7 +117,7 @@ export interface Client {
   /**
    * Construct and simulate a initialise transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  initialise: ({issuer, usdc, unit, trail_fee_bps, vesting_window_secs, minimum}: {issuer: string, usdc: string, unit: string, trail_fee_bps: u32, vesting_window_secs: u64, minimum: i128}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+  initialise: ({issuer, usdc, unit, trail_fee_bps, vesting_window_secs, minimum, confidential_token}: {issuer: string, usdc: string, unit: string, trail_fee_bps: u32, vesting_window_secs: u64, minimum: i128, confidential_token: string}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
 
   /**
    * Construct and simulate a recover_fee transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
@@ -152,7 +156,7 @@ export class Client extends ContractClient {
   }
   constructor(public readonly options: ContractClientOptions) {
     super(
-      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAACAAAAAAAAAASQWxyZWFkeUluaXRpYWxpc2VkAAAAAAABAAAAAAAAAA5Ob3RJbml0aWFsaXNlZAAAAAAAAgAAAAAAAAALVW5rbm93bkNvZGUAAAAAAwAAAAAAAAAJQ29kZVRha2VuAAAAAAAABAAAAAAAAAAMQmVsb3dNaW5pbXVtAAAABQAAAAAAAAAOTm90aGluZ1RvQ2xhaW0AAAAAAAYAAAAAAAAADE5vdFlldFZlc3RlZAAAAAcAAAAAAAAADk5vdFJlY292ZXJhYmxlAAAAAAAI",
+      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAACQAAAAAAAAASQWxyZWFkeUluaXRpYWxpc2VkAAAAAAABAAAAAAAAAA5Ob3RJbml0aWFsaXNlZAAAAAAAAgAAAAAAAAALVW5rbm93bkNvZGUAAAAAAwAAAAAAAAAJQ29kZVRha2VuAAAAAAAABAAAAAAAAAAMQmVsb3dNaW5pbXVtAAAABQAAAAAAAAAOTm90aGluZ1RvQ2xhaW0AAAAAAAYAAAAAAAAADE5vdFlldFZlc3RlZAAAAAcAAAAAAAAADk5vdFJlY292ZXJhYmxlAAAAAAAIAAAAQVJlc2VydmVkLiBQcm9vZiBjaGVja2luZyBub3cgbGl2ZXMgaW5zaWRlIHRoZSBjb25maWRlbnRpYWwgdG9rZW4uAAAAAAAADEludmFsaWRQcm9vZgAAAAk=",
         "AAAAAQAAAAAAAAAAAAAACkludHJvZHVjZXIAAAAAAAMAAAAAAAAABGNvZGUAAAAQAAAAAAAAAAxkaXNwbGF5X25hbWUAAAAQAAAAAAAAAAVvd25lcgAAAAAAABM=",
         "AAAAAQAAAAAAAAAAAAAAC0F0dHJpYnV0aW9uAAAAAAoAAAAAAAAAAmF0AAAAAAAGAAAAAAAAAARjb2RlAAAAEAAAAAAAAAADZmVlAAAAAAsAAAAAAAAAAmlkAAAAAAAEAAAAAAAAAAhpbnZlc3RvcgAAABMAAAA+Q2xhd2VkIGJhY2sgYnkgdGhlIGlzc3VlciBiZWNhdXNlIHRoZSBpbnZlc3RvciByZWRlZW1lZCBlYXJseS4AAAAAAAlyZWNvdmVyZWQAAAAAAAABAAAAAAAAAAdzZXR0bGVkAAAAAAEAAAAAAAAACnN1YnNjcmliZWQAAAAAAAsAAAAAAAAABXVuaXRzAAAAAAAACwAAAElXaGVuIHRoZSBmZWUgYmVjb21lcyB3aXRoZHJhd2FibGUuIEJlZm9yZSB0aGlzIHRoZSBpc3N1ZXIgY2FuIHJlY292ZXIgaXQuAAAAAAAACHZlc3RzX2F0AAAABg==",
         "AAAAAAAAABpPbmUgaW50cm9kdWNlcidzIG93biBib29rLgAAAAAACGdldF9ib29rAAAAAQAAAAAAAAAEY29kZQAAABAAAAABAAAD6gAAB9AAAAALQXR0cmlidXRpb24A",
@@ -160,7 +164,7 @@ export class Client extends ContractClient {
         "AAAAAAAAAEBXaXRoZHJhd2FibGUgcmlnaHQgbm93OiB2ZXN0ZWQsIG5vdCByZWNvdmVyZWQsIG5vdCBhbHJlYWR5IHBhaWQuAAAACWNsYWltYWJsZQAAAAAAAAEAAAAAAAAABGNvZGUAAAAQAAAAAQAAAAs=",
         "AAAAAAAAAIpTdWJzY3JpYmUgdGhyb3VnaCBhbiBpbnRyb2R1Y2VyJ3MgY29kZS4gUHVsbHMgVVNEQyBmcm9tIHRoZSBpbnZlc3RvciwKaXNzdWVzIHVuaXRzLCBhbmQgcmVjb3JkcyB0aGUgYXR0cmlidXRpb24gd2l0aCBpdHMgdmVzdGluZyBkZWFkbGluZS4AAAAAAAlzdWJzY3JpYmUAAAAAAAADAAAAAAAAAAhpbnZlc3RvcgAAABMAAAAAAAAABGNvZGUAAAAQAAAAAAAAAAt1c2RjX2Ftb3VudAAAAAALAAAAAQAAA+kAAAfQAAAAC0F0dHJpYnV0aW9uAAAAAAM=",
         "AAAAAAAAAB9FdmVyeSBhdHRyaWJ1dGlvbi4gSXNzdWVyIHZpZXcuAAAAAApnZXRfbGVkZ2VyAAAAAAAAAAAAAQAAA+oAAAfQAAAAC0F0dHJpYnV0aW9uAA==",
-        "AAAAAAAAAAAAAAAKaW5pdGlhbGlzZQAAAAAABgAAAAAAAAAGaXNzdWVyAAAAAAATAAAAAAAAAAR1c2RjAAAAEwAAAAAAAAAEdW5pdAAAABMAAAAAAAAADXRyYWlsX2ZlZV9icHMAAAAAAAAEAAAAAAAAABN2ZXN0aW5nX3dpbmRvd19zZWNzAAAAAAYAAAAAAAAAB21pbmltdW0AAAAACwAAAAEAAAPpAAAAAgAAAAM=",
+        "AAAAAAAAAAAAAAAKaW5pdGlhbGlzZQAAAAAABwAAAAAAAAAGaXNzdWVyAAAAAAATAAAAAAAAAAR1c2RjAAAAEwAAAAAAAAAEdW5pdAAAABMAAAAAAAAADXRyYWlsX2ZlZV9icHMAAAAAAAAEAAAAAAAAABN2ZXN0aW5nX3dpbmRvd19zZWNzAAAAAAYAAAAAAAAAB21pbmltdW0AAAAACwAAAAAAAAASY29uZmlkZW50aWFsX3Rva2VuAAAAAAATAAAAAQAAA+kAAAACAAAAAw==",
         "AAAAAAAAAIVJc3N1ZXIgcmVjb3ZlcnMgYSBmZWUgd2hvc2UgaW52ZXN0b3IgcmVkZWVtZWQgaW5zaWRlIHRoZSB3aW5kb3cuCkFsbC1vci1ub3RoaW5nOyByZWFsIGNoYXJnZWJhY2sgaXMgcHJvLXJhdGEg4oCUIHNlZSBERUNJU0lPTlMubWQgRDkuAAAAAAAAC3JlY292ZXJfZmVlAAAAAAEAAAAAAAAAAmlkAAAAAAAEAAAAAQAAA+kAAAALAAAAAw==",
         "AAAAAAAAAAAAAAAOZ2V0X2ludHJvZHVjZXIAAAAAAAEAAAAAAAAABGNvZGUAAAAQAAAAAQAAA+kAAAfQAAAACkludHJvZHVjZXIAAAAAAAM=",
         "AAAAAAAAAHVSZWdpc3RlciBhbiBpbnRyb2R1Y2VyIGFuZCBjbGFpbSBhIGNvZGUuIEFueW9uZSBtYXkgcmVnaXN0ZXI7IHRoZSBjb2RlCmlzIGZpcnN0LWNvbWUsIGFuZCB0aGUgb3duZXIgaXMgd2hvIGdldHMgcGFpZC4AAAAAAAATcmVnaXN0ZXJfaW50cm9kdWNlcgAAAAADAAAAAAAAAAVvd25lcgAAAAAAABMAAAAAAAAABGNvZGUAAAAQAAAAAAAAAAxkaXNwbGF5X25hbWUAAAAQAAAAAQAAA+kAAAfQAAAACkludHJvZHVjZXIAAAAAAAM=" ]),

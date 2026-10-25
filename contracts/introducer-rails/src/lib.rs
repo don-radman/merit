@@ -12,8 +12,34 @@
 //! and DECISIONS.md D1 for why fees and not holdings.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, token, Address, Env, String, Vec,
+    auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation},
+    contract, contractclient, contracterror, contractimpl, contracttype, token, vec, Address,
+    Env, IntoVal, String, Symbol, Vec,
 };
+
+/// Circuit identifiers, mirroring OpenZeppelin's `CircuitType`. The numeric
+/// values are part of the on-chain interface and must not change.
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum CircuitType {
+    Register = 0,
+    Withdraw = 1,
+    Transfer = 2,
+    SpenderTransfer = 3,
+    SetSpender = 4,
+    Clawback = 100,
+}
+
+/// The subset of OpenZeppelin's confidential token we call.
+///
+/// Only `deposit`. A confidential *transfer* has to be signed by the party
+/// holding the opening of the spending commitment, and proving happens
+/// client-side — a contract cannot do it. `deposit` needs no proof and a
+/// contract can authorize itself, which is what makes this design work.
+#[contractclient(name = "ConfidentialTokenClient")]
+pub trait ConfidentialToken {
+    fn deposit(e: Env, from: Address, to: Address, amount: i128);
+}
 
 const BPS_DENOMINATOR: i128 = 10_000;
 
@@ -28,6 +54,10 @@ pub struct Config {
     pub trail_fee_bps: u32,
     pub vesting_window_secs: u64,
     pub minimum: i128,
+    /// OpenZeppelin's confidential token, wrapping the same asset as `usdc`.
+    /// A claimed fee is deposited here, so the amount stops being public at
+    /// the moment it becomes the introducer's.
+    pub confidential_token: Address,
 }
 
 #[contracttype]
@@ -76,6 +106,8 @@ pub enum Error {
     NothingToClaim = 6,
     NotYetVested = 7,
     NotRecoverable = 8,
+    /// Reserved. Proof checking now lives inside the confidential token.
+    InvalidProof = 9,
 }
 
 #[contract]
@@ -122,6 +154,7 @@ impl IntroducerRails {
         trail_fee_bps: u32,
         vesting_window_secs: u64,
         minimum: i128,
+        confidential_token: Address,
     ) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialised);
@@ -136,6 +169,7 @@ impl IntroducerRails {
                 trail_fee_bps,
                 vesting_window_secs,
                 minimum,
+                confidential_token,
             },
         );
         env.storage().instance().set(&DataKey::NextId, &0u32);
@@ -260,6 +294,7 @@ impl IntroducerRails {
         let introducer = Self::introducer(&env, &code)?;
         introducer.owner.require_auth();
 
+
         let now = env.ledger().timestamp();
         let mut vested = 0i128;
         let mut accrued = 0i128;
@@ -282,8 +317,35 @@ impl IntroducerRails {
             return Err(Error::NothingToClaim);
         }
 
-        token::Client::new(&env, &cfg.usdc).transfer(
-            &env.current_contract_address(),
+        // The fee is public while it vests — that is what lets the issuer
+        // recover it. At the moment it becomes the introducer's, it moves into
+        // the confidential token and the amount stops being readable by
+        // anyone but the introducer, the issuer and the auditor.
+        let here = env.current_contract_address();
+
+        // The token pulls the underlying with its own `transfer` call, one
+        // frame deeper than ours. A contract has to pre-authorize anything it
+        // is the source of below its own frame, otherwise the host rejects it
+        // with Auth(InvalidAction) — the error names this function directly.
+        env.authorize_as_current_contract(vec![
+            &env,
+            InvokerContractAuthEntry::Contract(SubContractInvocation {
+                context: ContractContext {
+                    contract: cfg.usdc.clone(),
+                    fn_name: Symbol::new(&env, "transfer"),
+                    args: vec![
+                        &env,
+                        here.into_val(&env),
+                        cfg.confidential_token.into_val(&env),
+                        payable.into_val(&env),
+                    ],
+                },
+                sub_invocations: vec![&env],
+            }),
+        ]);
+
+        ConfidentialTokenClient::new(&env, &cfg.confidential_token).deposit(
+            &here,
             &introducer.owner,
             &payable,
         );

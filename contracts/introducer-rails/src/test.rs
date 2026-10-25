@@ -2,15 +2,39 @@
 
 use super::*;
 use soroban_sdk::{
+    contract, contractimpl, symbol_short,
     testutils::{Address as _, Ledger},
     token, Address, Env,
 };
+
+/// Stands in for OpenZeppelin's confidential token. Records what it was asked
+/// to credit, so a test can assert the fee actually left as a deposit rather
+/// than a public transfer.
+#[contract]
+pub struct MockConfidentialToken;
+
+#[contractimpl]
+impl MockConfidentialToken {
+    pub fn deposit(e: Env, from: Address, to: Address, amount: i128) {
+        from.require_auth();
+        e.storage().instance().set(&symbol_short!("last_to"), &to);
+        e.storage().instance().set(&symbol_short!("last_amt"), &amount);
+    }
+
+    pub fn last_deposit(e: Env) -> (Address, i128) {
+        (
+            e.storage().instance().get(&symbol_short!("last_to")).unwrap(),
+            e.storage().instance().get(&symbol_short!("last_amt")).unwrap_or(0),
+        )
+    }
+}
 
 const DAY: u64 = 86_400;
 const WINDOW: u64 = 90 * DAY;
 
 struct Fixture<'a> {
     env: Env,
+    cono: Address,
     client: IntroducerRailsClient<'a>,
     usdc: token::Client<'a>,
     issuer: Address,
@@ -32,6 +56,7 @@ fn setup<'a>() -> Fixture<'a> {
     let usdc_admin = token::StellarAssetClient::new(&env, &usdc_sac.address());
     let unit_admin = token::StellarAssetClient::new(&env, &unit_sac.address());
 
+    let cono = env.register(MockConfidentialToken, ());
     let contract_id = env.register(IntroducerRails, ());
     let client = IntroducerRailsClient::new(&env, &contract_id);
 
@@ -46,9 +71,10 @@ fn setup<'a>() -> Fixture<'a> {
         &50u32,
         &WINDOW,
         &50_000i128,
+        &cono,
     );
 
-    Fixture { env, client, usdc, issuer, introducer, investor }
+    Fixture { env, cono, client, usdc, issuer, introducer, investor }
 }
 
 fn code(env: &Env) -> String {
@@ -92,9 +118,11 @@ fn fee_is_not_claimable_until_it_vests() {
     f.env.ledger().with_mut(|l| l.timestamp += WINDOW + 1);
 
     assert_eq!(f.client.claimable(&code(&f.env)), 1_250);
-    let before = f.usdc.balance(&f.introducer);
     assert_eq!(f.client.claim_fee(&code(&f.env)), 1_250);
-    assert_eq!(f.usdc.balance(&f.introducer) - before, 1_250);
+    // It arrives as a confidential deposit, so the PUBLIC balance is unchanged.
+    assert_eq!(f.usdc.balance(&f.introducer), 0);
+    let (to, amount) = MockConfidentialTokenClient::new(&f.env, &f.cono).last_deposit();
+    assert_eq!((to, amount), (f.introducer.clone(), 1_250));
 
     // Paid once, not twice.
     assert_eq!(f.client.claimable(&code(&f.env)), 0);
@@ -137,4 +165,24 @@ fn rejects_unknown_codes_and_small_subscriptions() {
         f.client.try_register_introducer(&f.issuer, &code(&f.env), &String::from_str(&f.env, "x")),
         Err(Ok(Error::CodeTaken)),
     );
+}
+
+
+#[test]
+fn a_claimed_fee_is_deposited_into_the_confidential_token() {
+    let f = setup();
+    f.client.register_introducer(&f.introducer, &code(&f.env), &String::from_str(&f.env, "RFO"));
+    f.client.subscribe(&f.investor, &code(&f.env), &250_000i128);
+    f.env.ledger().with_mut(|l| l.timestamp += WINDOW + 1);
+
+    let paid = f.client.claim_fee(&code(&f.env));
+    assert_eq!(paid, 1_250);
+
+    // It left as a confidential deposit credited to the introducer, not as a
+    // public transfer to their account.
+    let mock = MockConfidentialTokenClient::new(&f.env, &f.cono);
+    let (to, amount) = mock.last_deposit();
+    assert_eq!(to, f.introducer);
+    assert_eq!(amount, 1_250);
+    assert_eq!(f.usdc.balance(&f.introducer), 0);
 }
