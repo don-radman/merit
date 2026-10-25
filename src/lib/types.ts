@@ -360,9 +360,48 @@ export interface IntroducerRailsClient {
 // Formatting helper
 // ---------------------------------------------------------------------------
 
-/** "250000.00" -> "250,000.00". Pure string work, safe on seven figures. */
+/**
+ * Group an Amount for display: "2750000.00" -> "2,750,000.00".
+ *
+ * `Intl.NumberFormat` accepts a STRING, so the value goes straight through
+ * without a `Number()` round-trip. That matters: formatting the string
+ * "9007199254740993.99" is exact, while the same value via `Number()` comes
+ * back as "...994.00". Our figures are far below that, but the entire point of
+ * `Amount` being a string is that no float ever touches money, and a formatter
+ * that quietly converted would be the one place it did.
+ *
+ * The locale is pinned on purpose. Unpinned, this renders "2.750.000,00" on a
+ * machine set to a European locale, which would silently change what the demo
+ * video shows.
+ */
+const GROUPED = new Intl.NumberFormat('en-GB', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * `Intl.NumberFormat.prototype.format` accepts a decimal string at runtime,
+ * which is what keeps these formatters off floats. TypeScript 7's lib still
+ * types the parameter as `number | bigint`, so this cast is the type system
+ * catching up — nothing converts the value. Keep it in this one place.
+ */
+function format(f: Intl.NumberFormat, amount: Amount): string {
+  return f.format(amount as unknown as number);
+}
+
 export function formatAmount(amount: Amount): string {
-  const [whole, frac = '00'] = amount.split('.');
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `${grouped}.${frac}`;
+  return format(GROUPED, amount);
+}
+
+/** Same, with the currency: "250000.00" -> "$250,000.00". */
+const USD = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'USD',
+  currencyDisplay: 'narrowSymbol',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatUsd(amount: Amount): string {
+  return format(USD, amount);
 }
