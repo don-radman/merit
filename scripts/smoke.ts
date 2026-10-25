@@ -17,6 +17,7 @@
 import { createStubClient, setStubFailure } from '../src/lib/stub.ts';
 import { ISSUER_TOTALS, feeOn, addAmounts} from '../src/lib/fixtures.ts';
 import type { SubscriptionStage } from '../src/lib/types.ts';
+import { formatAmount, formatUsd } from '../src/lib/types.ts';
 
 let pass = 0;
 const fails: string[] = [];
@@ -36,6 +37,13 @@ eq('totals.feesSettledTotal', ISSUER_TOTALS.feesSettledTotal, '2000.00');
 eq('totals.outstandingLiability', ISSUER_TOTALS.outstandingFeeLiability, '9250.00');
 eq('totals.unitsIssued', ISSUER_TOTALS.unitsIssued, '2250000.00');
 eq('addAmounts carries cents', addAmounts('0.70', '0.40'), '1.10');
+
+// --- 1b. formatters (Intl, string input, pinned locale) -------------------
+eq('formatAmount groups', formatAmount('2750000.00'), '2,750,000.00');
+eq('formatAmount keeps 2dp', formatAmount('0.70'), '0.70');
+eq('formatAmount negative', formatAmount('-8750.00'), '-8,750.00');
+eq('formatAmount exact past 2^53', formatAmount('9007199254740993.99'), '9,007,199,254,740,993.99');
+eq('formatUsd', formatUsd('250000.00'), '$250,000.00');
 
 // --- 2. resolveCode --------------------------------------------------------
 const investor = createStubClient({ role: 'investor' });
