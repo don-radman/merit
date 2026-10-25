@@ -20,3 +20,6 @@ test_snapshots
 .idea
 .vscode
 *.iml
+
+# generated per e2e run — holds the last deployed contract id
+contracts/.e2e-state

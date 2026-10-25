@@ -440,3 +440,36 @@ decoding, 3506 is the envelope decoding fine and the proof being wrong.
 `claim_fee` still moves a public `i128`. The confidential path it should call is
 `confidential_transfer`, whose proof now works. Switch `claim_circuit` from `Register` to
 `Transfer` and have the contract call the token rather than the SAC.
+
+---
+
+## What the confidential claim actually hides — measured, not assumed
+
+`scripts/e2e-testnet.sh` runs the confidential path end to end and passes: the fee leaves the
+contract, the introducer's **public** TUSDC balance does not move, and their confidential
+commitment changes.
+
+But read the event log before describing this as "confidential amounts":
+
+```json
+topics: ["deposit", <contract>, <introducer>]
+value : {"amount": "12500000000"}      // 1,250.00, in the clear
+```
+
+A deposit is public-to-private by construction — the amount entering came from a public SAC
+transfer, so it cannot be hidden, and OpenZeppelin emits it. **A single claim, watched live,
+is readable.**
+
+What is genuinely confidential:
+
+- the introducer's **balance** from that point on — a Pedersen commitment, not a number
+  (`confidential_balance` returns `receiving_commitment` / `spendable_commitment`)
+- any subsequent `confidential_transfer`, where the amount never appears
+- the accrued fee is also public *while it vests*, deliberately: that is what lets the issuer
+  recover it (DECISIONS.md D9)
+
+So the defensible claim is **"introducer balances are confidential, and fee movement between
+parties is confidential"** — not "fee amounts are never visible". Someone summing deposit
+events can reconstruct a single introducer's claims until they move funds confidentially.
+
+The e2e script prints this caveat on every run so nobody reads a PASS as more than it is.
