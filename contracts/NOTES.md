@@ -35,7 +35,9 @@ confidential tokens with real assets.
 
 Consequences:
 - Fees are confidential, holdings are not. See `DECISIONS.md` D1.
-- Say this out loud in the README and the pitch. The judges are SDF people.
+- Say this out loud in the README and the pitch. Anyone reading it will already
+  know exactly where this primitive stands; pretending otherwise reads worse than the
+  caveat does.
 - Testnet only. Not negotiable, and nothing of value is at stake anyway.
 
 ## Hour 4 spike — do this before any real contract work

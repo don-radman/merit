@@ -89,11 +89,12 @@ agent building against a happy-path stub will not build them.
 *Hour 0.*
 
 The problem statement is the strongest part of this submission and it comes from two real
-calls. Neither client has yet agreed to be named, and one has grant terms that stay
-internal. So: "a Singapore-based tokenized fund-of-funds manager" and "an RWA vault
-issuer" until someone says otherwise in writing.
+calls. Both clients have agreed to be cited **anonymously**, so they appear throughout as
+"a Singapore-based tokenized fund-of-funds manager" and "an RWA vault issuer". Neither is
+named, and no commercial terms from either relationship appear anywhere in this repo, the
+README, the deck or the video.
 
-**Revisit when:** both reply.
+**Settled.** Do not add identifying detail later for colour.
 
 ---
 

@@ -6,6 +6,7 @@ dist
 target
 contracts/target
 *.wasm
+test_snapshots
 
 # stellar CLI local state — identities and secret keys live here
 .stellar

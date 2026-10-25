@@ -14,5 +14,9 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "scripts", "vite.config.ts"]
+  "include": ["src", "scripts", "vite.config.ts"],
+  // Generated bindings are their own npm package with their own pinned
+  // @stellar/stellar-sdk. Build them in place:
+  //   cd src/bindings/introducer-rails && npm install && npm run build
+  "exclude": ["src/bindings/**"]
 }

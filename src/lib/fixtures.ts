@@ -3,7 +3,7 @@
  * =========================================================================
  * The data is the story. Every figure here is chosen so the fee arithmetic is
  * legible on screen at a glance: the trail fee is 50 bps, so a $1,000,000
- * subscription earns exactly $5,000 and a judge can check it in their head.
+ * subscription earns exactly $5,000 and a reader can check it in their head.
  *
  * Rules if you change anything:
  *   - keep `feeAccrued` === subscribed x TRAIL_FEE_BPS / 10000, exactly
@@ -212,7 +212,7 @@ export function subtractAmounts(a: Amount, b: Amount): Amount {
   return fromCents(toCents(a) - toCents(b));
 }
 
-/** The one piece of arithmetic in the demo a judge might check by hand. */
+/** The one piece of arithmetic in the demo anyone might check by hand. */
 export function feeOn(subscribed: Amount, bps: number = TRAIL_FEE_BPS): Amount {
   return fromCents(Math.round((toCents(subscribed) * bps) / 10000));
 }

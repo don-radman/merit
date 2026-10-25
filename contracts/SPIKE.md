@@ -7,6 +7,17 @@ number of milliseconds.** Not "a balance went up". Not "it compiled".
 
 ---
 
+## Deployed on testnet — 25 Oct
+
+| What | Contract ID |
+|---|---|
+| Introducer Rails | `CD55RTP347AHOKTC57QRHNTTXDIST7Q3UITD5VEJXWTWX73DD6Y2TEGH` |
+| TUSDC (subscription currency) | `CAU2S7MLSMT3T3OLZLLAEOYXIQ63RIQ3D2CXZGU7BVSABYOBBECCP45I` |
+| CSDIF (fund unit) | `CDUDSK7LJATIT4OULSY6PRETCGYY5VIUH35HKDVHNMN3XMRQJAOQWCKO` |
+
+`initialise` and `register_introducer` have both run against it and the introducer reads
+back off the chain. 50 bps trail fee, 90-day vesting window, 50,000 minimum.
+
 ## Already done
 
 **Testnet is Protocol 29.** This matters: on-chain UltraHonk verification needs the BN254
