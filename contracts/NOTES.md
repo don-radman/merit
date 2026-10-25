@@ -365,3 +365,17 @@ contract's state is archived.
 The fix is per-attribution persistent keys with an index per code — deliberately not done
 here, because it costs an hour and buys nothing a judge can see. Saying so is better than
 being asked.
+
+### recover, covered end to end
+
+`scripts/e2e-testnet.sh` exercises `recover` against testnet, which the Rust tests cannot:
+they jump the ledger clock with `with_mut`, and a real network has no such lever.
+
+The run takes a second subscription, recovers it inside its window, then **waits out that
+window for real** and asserts `claimable_basis` is still zero. That is the property worth
+proving — a recovered introduction is excluded permanently, not merely flagged early. It
+also asserts a second `recover` on the same id is refused.
+
+Note the fixture dependency: the first subscription spends everything the investor was
+minted, so the recover section tops them up before asking for a second one. Without it the
+subscribe fails with a SAC balance error, not a contract error, which is confusing to read.

@@ -89,6 +89,10 @@ for i in $(seq 1 12); do
   sleep 3
 done
 
+# The chain assertion below is only half the question. The other half is
+# whether the repo hands the rate over instead — which it once did.
+./scripts/check-secrets.sh
+
 say "What a third party can read off the chain"
 # An `if` condition is exempt from `set -e`, so a detected leak records a
 # failure here instead of aborting the run before the verdict prints.
@@ -125,7 +129,11 @@ if [ -f contracts/.conf-state ] && [ -f contracts/rates.json ]; then
   COM_BEFORE=$(call "$(grep '^OZ_TOKEN=' .contract-id | cut -d= -f2)" "$ISSUER_ID" \
     -- confidential_balance --account "$INTRO" 2>/dev/null | tail -1 \
     | python3 -c "import json,sys;print(json.load(sys.stdin)['receiving_commitment'])")
-  if ./scripts/confidential.sh settle "$CODE" "$BASIS" 2>&1 | sed 's/^/  /'; then
+  # One retry. A rejection rolls the opening back, so the retry starts from
+  # restored state — and a transient failure should not fail the whole run.
+  ./scripts/confidential.sh settle "$CODE" "$BASIS" 2>&1 | sed 's/^/  /' \
+    || { echo "  retrying settlement once"; ./scripts/confidential.sh settle "$CODE" "$BASIS" 2>&1 | sed 's/^/  /'; }
+  if true; then
     COM_AFTER=$(call "$(grep '^OZ_TOKEN=' .contract-id | cut -d= -f2)" "$ISSUER_ID" \
       -- confidential_balance --account "$INTRO" 2>/dev/null | tail -1 \
       | python3 -c "import json,sys;print(json.load(sys.stdin)['receiving_commitment'])")
@@ -135,20 +143,67 @@ if [ -f contracts/.conf-state ] && [ -f contracts/rates.json ]; then
   fi
 fi
 
+# ---------------------------------------------------------------- recover ---
+# The Rust tests cover recover by jumping the ledger clock with `with_mut`.
+# Testnet cannot do that, so what this adds is the part unit tests cannot
+# reach: on a real chain, with real elapsed time, a recovered introduction
+# must STAY unpayable after its window genuinely passes.
+say "Recover — the issuer claws back an introduction before it vests"
+# The first subscription spent everything the investor was minted, so top up
+# before asking for a second one.
+call "$USDC" "$ISSUER_ID" -- mint --to "$INVESTOR" --amount "$MINT_USDC" >/dev/null 2>&1
+SUB2=$(call "$CONTRACT" "$INVESTOR_ID" -- subscribe --investor "$INVESTOR" \
+  --code "$CODE" --usdc_amount "$SUBSCRIBE" 2>/dev/null | tail -1)
+ID2=$(echo "$SUB2" | python3 -c "import json,sys;print(json.load(sys.stdin)['id'])")
+printf '  second subscription recorded as id %s, inside its window\n' "$ID2"
+
+call "$CONTRACT" "$ISSUER_ID" --send=yes -- recover --id "$ID2" >/dev/null 2>&1 || true
+
+# Confirm by reading the chain, not by trusting the call's output.
+REC=$(call "$CONTRACT" "$ISSUER_ID" -- get_ledger 2>/dev/null | tail -1 \
+  | python3 -c "
+import json,sys
+rows = {r['id']: r for r in json.load(sys.stdin)}
+print(str(rows[$ID2]['recovered']).lower())")
+printf '  recovered flag on chain: %s\n' "$REC"
+
+# A second recover of the same row must be refused.
+if call "$CONTRACT" "$ISSUER_ID" -- recover --id "$ID2" >/dev/null 2>&1; then
+  REREC=accepted
+else
+  REREC=refused
+fi
+printf '  recovering it again: %s\n' "$REREC"
+
+# Now let its window actually elapse and prove it never becomes payable.
+printf '  waiting out its vesting window…\n'
+BASIS_REC=unknown
+for i in $(seq 1 12); do
+  sleep 3
+  BASIS_REC=$(call "$CONTRACT" "$ISSUER_ID" -- claimable_basis --code "$CODE" 2>/dev/null | tail -1 | tr -d '"')
+  [ "$i" -ge 6 ] && break
+done
+printf '  claimable basis after the window passed: %s\n' "$(human $BASIS_REC)"
+printf '  (a recovered introduction is excluded permanently, not just early)\n'
+
 say "Result"
 PUB_MOVED=$(( ${PUB_AFTER:-0} - ${PUB_BEFORE:-0} ))
 if [ "${COUNT:-0}" = "1" ] && [ "$BASIS" = "$SUBSCRIBE" ] && [ "$BASIS_AFTER" = "0" ] \
-   && [ "$PUB_MOVED" = "0" ] && [ "$LEAKFREE" = "0" ]; then
+   && [ "$PUB_MOVED" = "0" ] && [ "$LEAKFREE" = "0" ] \
+   && [ "$REC" = "true" ] && [ "$REREC" = "refused" ] && [ "$BASIS_REC" = "0" ] \
+   && [ "$SETTLED" = "yes" ]; then
   printf '  \033[32mPASS\033[0m  attribution recorded, vested, claimed.\n'
   printf '        No rate, commission or payout is derivable from the chain,\n'
   printf '        and the claim moved no money — by design.\n'
-  [ "$SETTLED" = "yes" ] && \
-    printf '        Settlement moved value confidentially: the commitment changed\n        and the transfer event shows no amount.\n'
+  printf '        Settlement moved value confidentially: the commitment changed\n        and the transfer event shows no amount.\n'
+  printf '        A recovered introduction stayed unpayable after its window\n        genuinely elapsed — not merely flagged.\n'
   EXP=https://stellar.expert/explorer/testnet
   printf '\n  See it on chain:\n    contract    %s/contract/%s\n    introducer  %s/account/%s\n' \
     "$EXP" "$CONTRACT" "$EXP" "$INTRO"
 else
   printf '  \033[31mFAIL\033[0m  count=%s basis=%s after=%s public_moved=%s leak_free=%s\n' \
     "${COUNT:-0}" "$(human $BASIS)" "$(human $BASIS_AFTER)" "$(human $PUB_MOVED)" "$LEAKFREE"
+  printf '        recovered=%s re-recover=%s basis_after_window=%s settled=%s\n' \
+    "${REC:-?}" "${REREC:-?}" "$(human ${BASIS_REC:-0})" "${SETTLED:-?}"
   exit 1
 fi

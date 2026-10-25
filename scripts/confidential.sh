@@ -114,9 +114,10 @@ settle)
   cp contracts/.conf-state contracts/.conf-state.prev
   printf 'CONF_V=%s\nCONF_R=%s\n' "$NV" "$NR" > contracts/.conf-state
 
+  # Keep the error: a bare "rejected" with no reason is useless at 3am.
   stellar contract invoke --id "$TOKEN" --source ir-issuer --network testnet --send=yes \
     -- confidential_transfer --from "$ISSUER" --to "$TO" --data-file-path "$WORK/data.bin" \
-    >/dev/null 2>&1 || true
+    >"$WORK/invoke.out" 2>&1 || true
 
   # Ask the CHAIN whether it landed, rather than parsing the CLI's output.
   # A successful transfer was once read as a rejection, and the rollback that
@@ -132,6 +133,8 @@ settle)
   elif node scripts/conf-check.mjs "$CONF_V" "$CONF_R" "$SPENDABLE"; then
     mv contracts/.conf-state.prev contracts/.conf-state
     echo "  transfer rejected — opening rolled back, pool still spendable"
+    grep -oE "Error\([A-Za-z]+, #?[0-9]+\)" "$WORK/invoke.out" | head -1 | sed 's/^/    reason: /'
+    grep -oE "fn_return, [a-z_]+\], data:(true|false)" "$WORK/invoke.out" | head -2 | sed 's/^/    /'
     exit 1
   else
     echo "  WARNING: chain matches NEITHER opening. Someone else spent from this"
