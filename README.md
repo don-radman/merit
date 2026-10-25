@@ -29,28 +29,23 @@ file that everyone who touches the deal can read.
 Stellar's own position is that the bottleneck has moved from issuance to getting assets to
 end users.
 
-**On novelty, stated accurately.** Referral attribution on Stellar is not unclaimed ground:
-[Fuul](https://fuul.xyz) is an incentives and affiliate engine — conversion events, automated
-reward payouts, used by Coinbase, Kraken, Morpho and dYdX — with two SCF submissions to deploy
-natively on Stellar. If the claim were "nobody does referral attribution", it would be false
-and a reviewer would find it in one search.
-
-What we could not find is anyone treating the **commercial terms** as the thing to protect.
-Fuul's model is growth incentives, where campaigns are public by design. Ours is regulated
-fund distribution, where the rate a manager gives one distributor is exactly what the others
-must not see. That is the gap, and it is narrower and more defensible than "first to do
-referrals".
-
 ## What it does
 
 ```
 Introducer link → Passkey wallet onboarding → Issuer authorizes trustline
-→ USDC subscription → Fund units minted → Confidential trail fee accrues
+→ USDC subscription → Fund units minted → Confidential placement fee accrues
 ```
 
 An introducer registers once and gets a link. When an investor subscribes through that
-link, the referral is recorded onchain and the introducer's trail fee accrues
-automatically. The commission itself never touches the chain: the rate is private between the
+link, the referral is recorded onchain and the introducer's placement fee accrues
+automatically.
+
+**Placement, not trail.** The contract settles **once**, on the subscription basis, after the
+vesting window — which is a placement fee. A trail fee recurs on assets held, and nothing here
+recurs. The same rails do trail with a periodic settlement run over the same book, but this
+build does not, so calling it a trail fee would be claiming a product we have not written.
+(The client field is still `trailFeeBps`: renaming it reaches the frozen interface and the UI,
+and was not worth doing mid-build. The number it holds is a placement rate.) The commission itself never touches the chain: the rate is private between the
 issuer and that introducer, and settlement is a confidential transfer out of the issuer's pool.
 **Nobody can tell what an introducer earns.**
 
@@ -89,7 +84,7 @@ The walkthrough for the video is in [DEMO.md](DEMO.md); the visual system is in
 
 | Layer | Choice | Why |
 |---|---|---|
-| Fund unit | Classic Stellar asset, `AUTH_REQUIRED` + clawback, via its SAC | Issuer keeps freeze / clawback / trustline approval — the regulated-asset controls institutions actually ask for |
+| Fund unit | Classic Stellar asset via its SAC | The regulated-asset controls institutions ask for — `AUTH_REQUIRED`, freeze, clawback — are **asset flags we have not set on the testnet issuer**. See below. |
 | Subscription currency | USDC on testnet | What an investor would really send |
 | Attribution + minting | Soroban contract | Records code → investor → amount, mints units, accrues fee |
 | Introducer fees | OpenZeppelin `stellar-confidential` (stellar-contracts v0.8.0) | Fee amounts encrypted; auditor holds a view key |
@@ -145,6 +140,15 @@ comment calling itself the secret this design protects. It is a template of fake
 and `./scripts/check-secrets.sh` fails the run if the template ever carries a live code or
 rate again. The old values are still in git history at `45f82f7`; they are fictional, which
 is the only reason that is a note rather than an incident.
+
+**The compliance controls are not switched on.** Horizon reports the testnet issuer with
+`auth_required`, `auth_revocable` and `auth_clawback_enabled` all **false**. So the investor
+flow's "the fund is approving your account" stage is presentational today, and nothing would
+stop a holder transferring units to an unapproved account. Turning it on is `set-options` on
+the issuer plus a `set_authorized` step wherever a trustline is created — but the flags only
+govern trustlines opened *after* they are set, so the existing demo balances would not come
+under them without reissuing. We would rather say that than let the stage imply an enforcement
+that is not there.
 
 **Measured, not assumed.** `contracts/SPIKE.md` records what we actually read off the chain at
 each step, including the deposit event that carries its amount in the clear. An earlier draft of

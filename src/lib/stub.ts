@@ -442,6 +442,12 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
         valueUsd,
         subscribedTotal,
         firstSubscribedAt: source[0].at,
+        // What the structure is designed to do. NOT what the testnet issuer
+        // currently enforces: Horizon reports auth_required, auth_revocable
+        // and auth_clawback_enabled all false on it, so none of this is
+        // switched on today. README records that under "The compliance
+        // controls are not switched on" — keep the two in step if the flags
+        // are ever set.
         issuerControls: {
           trustlineAuthorized: true,
           freezeEnabled: true,
@@ -451,7 +457,7 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
           `You hold ${formatAmount(units)} units of the ${FUND.name}.`,
           `Each unit is currently valued at ${formatAmount(FUND.unitPrice)} USD, so your holding is worth about ${formatAmount(valueUsd)} USD.`,
           `You subscribed ${formatAmount(subscribedTotal)} USDC in total. Units were issued directly to your account.`,
-          `This fund is a regulated-asset structure: the issuer approved your account before units could be issued, and can freeze or recall units under its normal compliance controls.`,
+          `This fund is a regulated-asset structure: the issuer authorises accounts before units are issued, and can freeze or recall units under its normal compliance controls.`,
           `The person who introduced you is paid a fee by the fund, not by you. You never see their fee and they never see your balance.`,
         ],
       };
