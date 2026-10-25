@@ -8,14 +8,20 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "smoke": "node --import ./scripts/register-hooks.mjs scripts/smoke.ts"
+    "smoke": "node --import ./scripts/register-hooks.mjs scripts/smoke.ts",
+    "site:dev": "node site/server.mjs",
+    "site:build": "vite build --config site/vite.config.ts --outDir dist/client --ssrManifest && vite build --config site/vite.config.ts --outDir dist/server --ssr src/entry-server.tsx",
+    "site:start": "NODE_ENV=production node site/server.mjs",
+    "site:setup": "node scripts/site-setup.mjs",
+    "site:e2e": "node scripts/site-e2e.mjs"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "16.2.0",
     "@zkpassport/poseidon2": "^0.6.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "stellar-confidential-token-sdk": "^0.1.9"
+    "stellar-confidential-token-sdk": "^0.1.9",
+    "express": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

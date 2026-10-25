@@ -161,6 +161,23 @@ export function createLiveClient(config: LiveConfig): IntroducerRailsClient {
     role: config.role,
     mode: 'live',
 
+    /**
+     * NOT available in live mode, deliberately.
+     *
+     * Spreading the stub gives this client every method, which is what makes
+     * the swap incremental — but a write that answers from fixtures while the
+     * reads beside it come from the chain puts two contradicting numbers on
+     * the same screen. The fund console measured exactly that: the button
+     * read "Run payout · 4" from the chain and the receipt said "1 settled"
+     * from the fixtures.
+     *
+     * `runSettlement` is optional on the interface precisely so a client can
+     * decline it. Declining restores the honest caption the console already
+     * has — that in live mode the payout run is executed by the issuer's
+     * settlement service, which holds the pool's opening and the rates.
+     */
+    runSettlement: undefined,
+
     async resolveCode(code) {
       const i = await read<{ code: string; owner: string; display_name: string }>(
         'get_introducer',

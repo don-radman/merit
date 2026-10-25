@@ -274,3 +274,92 @@ blocking it.
 
 **Revisit when:** a signer exists, or someone wants settlement to cover every code in one
 call rather than one code at a time.
+
+### D13 — The investor's only credential is a passkey.
+*Added while building the Calder investor portal (`site/`).*
+
+A seed phrase is a non-starter for the investor this product is aimed at. Nobody moves six
+figures into a fund through a browser extension that asks them to write twelve words on
+paper, and every demo that hand-waves this is quietly assuming the hardest part away.
+
+So `contracts/passkey-wallet` is a Soroban smart account whose signer is a WebAuthn
+credential. The investor's authority lives in the secure element of their phone or laptop —
+Touch ID, Face ID, Windows Hello — and `__check_auth` verifies the assertion on chain with
+`secp256r1_verify`, which the host does natively.
+
+**What is verified, and why each check earns its place.** Verifying the signature alone is
+not enough. The contract also requires that the credential is registered, that `rpIdHash`
+matches the domain the wallet was created for, that user presence *and* user verification
+flags are set, that the ceremony is `webauthn.get` and not `webauthn.create`, and that the
+challenge inside `clientDataJSON` is exactly this transaction's authorization payload. Drop
+any one and there is a way in: an assertion minted for another site, a registration
+ceremony replayed as a payment, a tap standing in for a fingerprint, or — the one that
+matters most — an assertion for one transfer authorising a different one.
+
+**The decoy challenge.** The contract scans forward for the first `"challenge":"` and takes
+that. It would be cheaper to let the caller say where the challenge is, and it would be
+wrong: an attacker could bury a second `"challenge":"…"` inside a string field and have the
+contract read theirs instead of the one the user approved. There is a test for exactly this.
+
+**Low-S is the client's job.** WebAuthn returns DER, and about half of all signatures come
+back with `s` in the upper half of the curve order, which the host rejects. The browser
+unwraps and normalises before sending. Getting this wrong produces a wallet that works
+roughly half the time, which is far harder to debug than one that never works.
+
+**What is missing.** Attestation is not verified, so the server takes the browser's word for
+the public key — only a risk to the person doing it, but a real deployment that cared which
+devices were permitted would check. There is no social or guardian recovery: the recovery
+story is "add a second device before you lose the first", and the contract refuses to revoke
+the last signer because that would not revoke a device, it would destroy the account.
+
+**Revisit when:** recovery needs to survive losing every device, or a per-credential spend
+policy is wanted — `auth_contexts` is already passed to `__check_auth` and ignored, which is
+where a session-key model would live.
+
+### D14 — The relayer pays fees and cannot spend.
+*Added with D13.*
+
+An investor who has to acquire XLM before they can buy a fund will not buy the fund. So the
+site holds one Stellar key that pays every fee and deploys every wallet.
+
+This is deliberately not custody. A transaction touching an investor's wallet carries a
+Soroban authorization entry the relayer cannot produce, because producing it needs a WebAuthn
+assertion over that exact payload from a secure element the server has never seen. The worst
+the relayer can do is refuse to submit. That is the right amount of power for the component
+whose entire job is to make fees somebody else's problem.
+
+**The fund issuer's key is not on the web tier at all.** Earlier drafts had the server mint
+test USDC, which meant holding the asset administrator's key next to an HTTP handler. It now
+disburses from its own float by ordinary transfer, and the issuer key stays in the operator's
+CLI where it belongs.
+
+**Wallet addresses are derived, not stored.** `salt = sha256(credentialId)`, deployer = the
+relayer, so the mapping from passkey to wallet is arithmetic. Signing in is: the
+authenticator volunteers a discoverable credential, the server derives the address, the chain
+says whether it exists. No user table, no password, no session store, nothing to breach.
+
+**Revisit when:** the site runs as more than one process — the pending-authorization map is
+in memory, which is the one thing that would have to move.
+
+### D15 — The portal is server-rendered.
+*Added with D13.*
+
+`site/` is rendered on the server so an investor's first paint already contains their real
+balance and their real position, read from testnet during the request. The browser ships no
+Stellar SDK and holds no key; the only thing it does that the server cannot is ask the secure
+element to sign.
+
+**The wallet cookie is not an auth token.** It holds a public contract address and decides
+one thing: whose balances the page renders. Forging it shows you somebody else's public
+balance, which the chain shows anybody who asks. Every action still needs a fresh assertion
+over that specific transaction.
+
+**Two gotchas, both of which fail silently.** `getEvents` is a forward scan with a
+per-request budget, not "the last N events" — starting a day back and asking for 100 returns
+whatever it found before the budget ran out, which for a new account is nothing. And a
+`#[contracttype]` struct is an ScMap with **Symbol** keys; `nativeToScVal` on a plain object
+gives String keys, and the host rejects that from deep inside its own struct unpacking, a
+long way from anything that mentions keys.
+
+**Revisit when:** the site needs to be more than a demonstration — it is marked as a
+fictional manager on every page, and should stay that way.

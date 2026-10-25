@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "contracts/introducer-rails",
+  "contracts/passkey-wallet",
 ]
 
 [workspace.dependencies]

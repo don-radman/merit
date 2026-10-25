@@ -1182,6 +1182,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "passkey-wallet"
+version = "0.1.0"
+dependencies = [
+ "p256",
+ "sha2",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"

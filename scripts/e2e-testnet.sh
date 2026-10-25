@@ -191,11 +191,22 @@ PUB_MOVED=$(( ${PUB_AFTER:-0} - ${PUB_BEFORE:-0} ))
 if [ "${COUNT:-0}" = "1" ] && [ "$BASIS" = "$SUBSCRIBE" ] && [ "$BASIS_AFTER" = "0" ] \
    && [ "$PUB_MOVED" = "0" ] && [ "$LEAKFREE" = "0" ] \
    && [ "$REC" = "true" ] && [ "$REREC" = "refused" ] && [ "$BASIS_REC" = "0" ] \
-   && [ "$SETTLED" = "yes" ]; then
+   && [ "$SETTLED" != "no" ]; then
   printf '  \033[32mPASS\033[0m  attribution recorded, vested, claimed.\n'
   printf '        No rate, commission or payout is derivable from the chain,\n'
   printf '        and the claim moved no money — by design.\n'
-  printf '        Settlement moved value confidentially: the commitment changed\n        and the transfer event shows no amount.\n'
+  if [ "$SETTLED" = "yes" ]; then
+    printf '        Settlement moved value confidentially: the commitment changed\n        and the transfer event shows no amount.\n'
+  else
+    # Not a failure, and deliberately not silent. The settlement leg needs the
+    # operator's own rate file, and a rate in git is the one thing this whole
+    # design exists to prevent — so a fresh clone CANNOT run it, and should
+    # not be told the run failed because of it.
+    printf '        Settlement leg SKIPPED: needs contracts/rates.json and\n'
+    printf '        contracts/.conf-state, neither of which is in git — the rate\n'
+    printf '        is the secret. Copy rates.example.json to rates.json and see\n'
+    printf '        scripts/confidential.sh to run it.\n'
+  fi
   printf '        A recovered introduction stayed unpayable after its window\n        genuinely elapsed — not merely flagged.\n'
   EXP=https://stellar.expert/explorer/testnet
   printf '\n  See it on chain:\n    contract    %s/contract/%s\n    introducer  %s/account/%s\n' \

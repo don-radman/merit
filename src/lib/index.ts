@@ -5,8 +5,10 @@
  *
  *   import { createClient, formatAmount } from '@/lib';
  *
- * Today every method is served by the stub. As each contract method lands,
- * implement it in `live.ts` and flip MODE — the UI does not change.
+ * Reads are live against the deployed contract; writes are still the stub,
+ * because no signer exists in this client. `liveMethods` in live.ts is the
+ * authority on which is which. As each write lands, implement it there — the
+ * UI does not change.
  */
 
 import { createStubClient } from '@/lib/stub.ts';
@@ -34,7 +36,7 @@ const env = (v: string | undefined, fallback: string): string => v ?? fallback;
 /** The deployed contract. Override with VITE_CONTRACT_ID. */
 export const CONTRACT_ID = env(
   import.meta.env.VITE_CONTRACT_ID,
-  'CD7MWB47OB5756HIK7COFP7RKWTEYEQH6XM6EB4KZ4OHA3CWBDIRRHQA',
+  'CDENXKDNNRLQ7F3C7VI3EWFPJBUMO5L6BDV2CZE6LSCP47G5JUGTPJT4',
 );
 
 /**

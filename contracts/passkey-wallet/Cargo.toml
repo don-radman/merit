@@ -1,0 +1,20 @@
+[package]
+name = "passkey-wallet"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+# Host tests mint real P-256 signatures and real WebAuthn-shaped payloads, so
+# the assertions exercise the same bytes a browser would send. Without these the
+# tests could only check the rejection paths.
+p256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
+sha2 = { version = "0.10", default-features = false }

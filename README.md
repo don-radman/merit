@@ -72,13 +72,41 @@ for confidential-account registration, framed like adding a bank account.
 
 ### 3. Fund — attribution ledger (`/issuer`)
 Every attribution across all scouts, each fee at *that* scout's private rate (the fund is
-the one party that holds every rate), outstanding liability, and a **Run payout** button
-that settles every vested introduction in one go — the "you never chase" promise made
-literal. Ends with the auditor reconciliation line: totals reconcile through the auditor
-key without any scout's rate or payout being public.
+the one party that holds every rate), outstanding liability, and a **Run payout** button —
+the "you never chase" promise made literal.
+
+Two honesties about this screen. The payout button is a **simulation**: in stub mode it
+plays the settlement back from fixtures, and in live mode the client declines it altogether
+so the console says so, because this client has no signer. Real confidential settlement runs
+from `scripts/confidential.sh settle`, and wiring the button to it is the next integration
+step. And the auditor line compares a total against itself — this client does not hold the
+auditor key, which its own heading says. Treat it as the shape of the reconciliation, not a
+performed one.
 
 The walkthrough for the video is in [DEMO.md](DEMO.md); the visual system is in
 [DESIGN.md](DESIGN.md).
+
+## The investor portal (`site/`)
+
+The three screens above are the mechanism. [`site/`](./site/README.md) is what it looks like
+to somebody actually using it: a server-rendered site for **Calder Asset Management**, a
+fictional Singapore manager distributing the fund through introducers.
+
+```sh
+node scripts/site-setup.mjs   # once
+npm run site:dev              # http://localhost:5174
+```
+
+An investor opens their adviser's link, creates a passkey, and subscribes with a
+fingerprint. There is no seed phrase, no extension, no XLM and no gas — Calder deploys the
+wallet and pays the fees, and cannot touch what is in it. The adviser's book is a public
+read at `/advisers/<CODE>`, showing every introduction and its state, and deliberately
+unable to show the commission, because no rate is on the chain to show.
+
+Proof it works rather than demos: `cargo test -p passkey-wallet` (13 host tests over real
+P-256 signatures) and `npm run site:e2e` (the whole flow against testnet, with a simulated
+authenticator producing byte-identical payloads to a browser's). See D13–D15 in
+[DECISIONS.md](./DECISIONS.md).
 
 ## Architecture
 
@@ -88,7 +116,8 @@ The walkthrough for the video is in [DEMO.md](DEMO.md); the visual system is in
 | Subscription currency | USDC on testnet | What an investor would really send |
 | Attribution + minting | Soroban contract | Records code → investor → amount, mints units, accrues fee |
 | Introducer fees | OpenZeppelin `stellar-confidential` (stellar-contracts v0.8.0) | Fee amounts encrypted; auditor holds a view key |
-| Investor wallet | Passkey smart wallet | No seed phrase, no gas — the "my mum could use it" bar |
+| Investor wallet | Passkey smart wallet (`contracts/passkey-wallet`) | No seed phrase, no gas — the "my mum could use it" bar. `__check_auth` verifies a WebAuthn assertion with `secp256r1_verify`; D13 |
+| Fees | Relayer account holding no passkey | Pays and deploys; cannot authorise anything, so it is not custody; D14 |
 | Claim path limits | OpenZeppelin policy | Bounds what the claim path can do |
 
 **Fees are confidential. Holdings are not.** See below.
@@ -235,6 +264,8 @@ why not Turborepo.
 | `src/bindings/` | contracts dev (generated, committed) | `stellar contract bindings typescript` |
 | `Cargo.toml`, `AGENTS.md` | contracts dev | cargo workspace root |
 | `contracts/introducer-rails/` | contracts dev | cargo crate (Soroban) |
+| `contracts/passkey-wallet/` | contracts dev | cargo crate (Soroban) |
+| `site/` | contracts dev | node + Vite (its own project; does not touch the root app) |
 | `scripts/` | contracts dev | node + Stellar CLI |
 
 Three rules that keep two people out of each other's way:
