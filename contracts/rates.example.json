@@ -1,0 +1,5 @@
+{
+  "_comment": "Privately negotiated commission rates, in basis points. This file is the secret the whole design protects: the chain never sees it, and no introducer can learn another's terms. Copy to rates.json, which is gitignored.",
+  "CALDER-PR7": 50,
+  "CALDER-DO2": 35
+}

@@ -23,3 +23,7 @@ test_snapshots
 
 # generated per e2e run — holds the last deployed contract id
 contracts/.e2e-state
+
+# privately negotiated commission rates — never commit
+contracts/rates.json
+contracts/.conf-state
