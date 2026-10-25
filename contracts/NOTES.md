@@ -79,19 +79,38 @@ Neither cargo nor the Stellar CLI was present when this scaffold was written. Bu
 for this at hour 0, because nothing else can start until it is done:
 
 ```bash
+# 1. Rust. Needs >= 1.84.0 for the wasm target below.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup target add wasm32v1-none          # check the docs for the current wasm target
-cargo install --locked stellar-cli
+
+# 2. The wasm target. An IDE will NOT add this for you, and without it
+#    `stellar contract build` fails with "can't find crate for `core`".
+rustup target add wasm32v1-none
+
+# 3. The Stellar CLI. Homebrew is quickest on macOS; the cargo route
+#    (`cargo install --locked stellar-cli`) also needs a C build system.
+brew install stellar-cli
 stellar --version
 ```
 
-Then scaffold the crate rather than hand-writing a manifest:
+The crate is already scaffolded (`stellar contract init`, CLI v28.1.0, soroban-sdk 28).
+Layout, after flattening the scaffold's own nesting:
 
-```bash
-cd contracts && stellar contract init introducer-rails
+```
+Cargo.toml                        workspace root, members = ["contracts/introducer-rails"]
+AGENTS.md                         the CLI's own brief for coding agents
+contracts/introducer-rails/       the crate
+  Cargo.toml                      name = "introducer-rails", soroban-sdk from the workspace
+  Makefile                        `make build` -> stellar contract build
+  src/lib.rs                      `pub struct Contract;` — replace the sample `hello()`
+  src/test.rs
 ```
 
-and uncomment it in `contracts/Cargo.toml`.
+Build with `stellar contract build`, not `cargo build --target ...` — the CLI applies the
+flags and metadata the network expects, and optimises the wasm. Output lands in
+`target/wasm32v1-none/release/introducer_rails.wasm` at the repo root.
+
+To add a second contract later: `stellar contract init . --name <other>`, then add it to
+`members` in the root `Cargo.toml`.
 
 ## What the contract has to expose
 
