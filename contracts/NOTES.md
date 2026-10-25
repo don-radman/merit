@@ -337,3 +337,31 @@ the chain's `spendable_commitment`, which is also the fix:
 Every `grep -oE "Event:"` in a throwaway diagnostic in this repo's history is the same latent
 bug. It is harmless when you are only reading; it is not harmless when a failed read triggers
 a rollback.
+
+
+## Issuer chargeback — demonstrated on testnet
+
+`CCDOLC5SK5IUSSLBRKQEPMDUGTWU4M35CRV25PHSJ4NC6MSBDH5UUTCM`, deployed with a real 90-day window (the main instance uses 0 so the claim can be
+demoed in one sitting, which also makes recovery impossible there).
+
+| Step | Result |
+|---|---|
+| subscribe 250,000 | attribution id 0 |
+| introducer claims | `NotYetVested` (#7) — vesting genuinely blocks it on chain |
+| issuer calls `recover --id 0` | tx `1cb4c1cd…` |
+| ledger row | `"recovered": true` |
+| `claimable_basis` | `0` — a recovered introduction never becomes payable |
+
+This is DECISIONS.md D9 shown rather than asserted. Until now the chargeback path existed
+only in the Rust tests, which is not the same claim.
+
+## Known limitation: attributions live in one Vec
+
+`DataKey::Attributions` holds every attribution in a single `Vec` in instance storage. That
+is fine at demo scale and wrong at production scale: Soroban caps entry size, every read
+deserialises the whole vector, and instance storage carries a TTL that must be bumped or the
+contract's state is archived.
+
+The fix is per-attribution persistent keys with an index per code — deliberately not done
+here, because it costs an hour and buys nothing a judge can see. Saying so is better than
+being asked.
