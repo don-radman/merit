@@ -7,7 +7,7 @@ Everything the UI is allowed to know about the chain is in this folder.
 | `types.ts` | both — **frozen** | The interface. Changing a signature here is a conversation, not a commit. |
 | `fixtures.ts` | UI dev | Hand-designed demo data. The figures are chosen to be legible on screen. |
 | `stub.ts` | UI dev | Fake implementation. Build screens against this from hour 2. |
-| `live.ts` | contracts dev | Does not exist yet. Real implementation, added method by method. |
+| `live.ts` | contracts dev | Real implementation. Reads are live; writes still delegate to the stub. |
 | `index.ts` | both | The swap point. One constant decides stub or live. |
 
 ## Why it is shaped like this
@@ -35,6 +35,26 @@ before either implementation existed.
 
 Partial live mode is the point — the investor screen can be real while the issuer ledger
 is still fixtures.
+
+### Where that has got to
+
+`liveMethods` is the honest list, exported so a screen can ask rather than guess:
+`resolveCode`, `getBook`, `getLedger` and `getAuditorAttestation` read the deployed contract
+through read-only simulations. Everything that writes — `subscribe`, `claim`, anything
+touching a passkey — still delegates to the stub, so `mode` reports `'live'` while a good
+deal behind it is not. Check `liveMethods` before claiming a screen is real.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `VITE_CLIENT_MODE` | `stub` | `live` swaps the reads onto the chain. |
+| `VITE_CONTRACT_ID` | the seeded instance | Which deployment to read. |
+| `VITE_TRAIL_FEE_BPS` | `50` | **This** introducer's own rate. Applied locally; never on chain. |
+| `VITE_VESTING_WINDOW_SECS` | `300` | Must match the deployment — `initialise` fixes it and there is no getter, so a wrong value puts a wrong window on screen. |
+| `VITE_READ_SOURCE` | a funded testnet account | Simulation source only. Never signs. |
+
+Write `import.meta.env.VITE_X` exactly, with no cast and no optional chaining. Vite replaces
+that literal expression at build time; wrap it and the substitution silently stops happening
+and the value reads `undefined`. That cost a restart's worth of confusion once already.
 
 ## Promises resolve on confirmation, not on submission
 

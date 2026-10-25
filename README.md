@@ -102,9 +102,38 @@ distribution, not who gets what.
 contract stores no fee and no rate — it is an attribution and vesting ledger, nothing more — and
 every payment out of the pool is a `confidential_transfer` whose amount appears nowhere.
 
+**What the chain emits.** Every state change publishes an event, so attribution can be audited
+without trusting our UI or diffing the ledger against a previous answer:
+
+| event | topics | data |
+|---|---|---|
+| `register` | `register`, code | owner address |
+| `subscribe` | `subscribe`, code | attribution id, subscribed amount |
+| `claimed` | `claimed`, code | the ids claimed |
+| `recovered` | `recovered`, code | the attribution id |
+
+`claim` publishes **ids, not a total**. One number there would hand an observer the exact
+settlement basis and undo the whole point. Until review caught it, only `claim` emitted at all —
+a clawback changed a flag and announced nothing, which is the one action a distributor most wants
+evidence of. See DECISIONS.md D11.
+
 That boundary is deliberate, and it is the one that matters commercially. Fund flows get
 disclosed; distribution terms do not. A manager will publish what came in and will not let one
 distributor learn another's rate.
+
+**Where the rates live in this repo, and why that is not the claim.** A demo has to put
+numbers somewhere: `src/lib/fixtures.ts` maps the two fictional introducers to 50 and 70 bps
+so the screens have something to render. The claim is about what the **chain** and the
+**other parties** can see — not about a public demo repo for an invented fund. In production
+the table sits in the issuer's own systems, where the agreements already live, and the only
+copy the introducer's client ever holds is its own single rate.
+
+That distinction is easy to say and was easy to get wrong: `contracts/rates.example.json`
+shipped byte-identical to the gitignored `contracts/rates.json`, live values and all, under a
+comment calling itself the secret this design protects. It is a template of fake codes now,
+and `./scripts/check-secrets.sh` fails the run if the template ever carries a live code or
+rate again. The old values are still in git history at `45f82f7`; they are fictional, which
+is the only reason that is a note rather than an incident.
 
 **Measured, not assumed.** `contracts/SPIKE.md` records what we actually read off the chain at
 each step, including the deposit event that carries its amount in the clear. An earlier draft of
@@ -212,3 +241,26 @@ npm run dev          # UI against the stub client — no chain needed
 The UI talks only to the client in `src/lib/`. `STUB` mode returns fixture data so the
 screens can be built and demoed with no contracts deployed; see
 [src/lib/README.md](./src/lib/README.md) for the swap to live testnet.
+
+Against the chain:
+
+```bash
+./scripts/e2e-testnet.sh     # deploys a throwaway instance and asserts no rate leaks
+./scripts/seed-demo.sh       # leaves a deployment whose book shows all four states
+VITE_CLIENT_MODE=live npm run dev
+```
+
+The two scripts do different jobs. `e2e-testnet.sh` is the test: it deploys a fresh instance
+each run, so running it again is the reset, and it fails the build if a rate-bearing field
+ever appears on a ledger row. `seed-demo.sh` is the fixture: it leaves one deployment holding
+a claimed, a claimable, a vesting and a clawed-back introduction at once, across two
+introducers on deliberately different terms.
+
+Its ordering is forced by the contract rather than chosen — `recover` refuses a vested row,
+and `claim` takes every vested row for a code in one call — which is why it waits twice and
+why the seeded window is minutes rather than the 90 days production would use. Read the
+header comment before changing the order; it will not do what you expect.
+
+Point the UI at whatever it deploys with `VITE_CONTRACT_ID`, and set
+`VITE_VESTING_WINDOW_SECS` to match — the window is fixed at `initialise` and the contract
+exposes no getter, so the client cannot discover it.

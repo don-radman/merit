@@ -172,3 +172,79 @@ window; the product computes pro-rata on a cancellation event. Say it in the pit
 than be caught by it.
 
 **Revisit when:** `claim_fee` is implemented, and when anyone asks about pro-rata.
+
+### D10 — The rate is the secret. The subscription is not.
+*Added mid-build, after "so what's the point of the confidential stuff, you could just add
+up the transfers" — which was right.*
+
+The first design hid the **fee amount**. It did not work, and the objection took one
+sentence: fees were paid by a public SAC transfer, the rate sat in public config as
+`trail_fee_bps`, and every attribution row carried a public `fee` field. Three independent
+leaks of the same number. Encrypting the payout while publishing the multiplicand and the
+multiplier is theatre.
+
+**The reframe.** Ask which number a distributor would actually be harmed by publishing. It
+is not the subscription — fund flows get disclosed to auditors, administrators, regulators
+and often investors as a matter of course. It is the **rate**. What Calder pays this
+introducer, versus what it pays that one, is the commercially sensitive term: publish it and
+every introducer immediately renegotiates to the best rate in the book, and competitors
+learn your distribution economics.
+
+So the contract now stores **no amounts at all** — no fee, no rate, no bps. It records who
+introduced whom, for how much, and when, and it marks introductions claimed or recovered.
+Settlement happens off-chain against each introducer's privately negotiated rate, paid
+through the confidential token.
+
+**What this buys that the first design did not.** Two introducers on 50 and 70 bps are
+indistinguishable on chain. `get_ledger` has no field a rate could be derived from, and the
+e2e script asserts that by grepping the row keys for `fee`, `rate`, `bps`, `commission` and
+`earn` — a test that fails the build rather than a claim in a README.
+
+**The honest limit.** An observer who already knows one introducer's rate learns nothing
+about the others, but an observer who watches a single introducer's claims and separately
+learns one settlement amount can divide. The protection is that the settlements are
+confidential, not that the basis is hidden — the basis is deliberately public. Say that
+plainly rather than claim more.
+
+**Why the client holds the rate.** `trailFeeBps` is client config, not a contract read. An
+introducer knows their own terms and applies them locally. If you ever find yourself
+fetching a rate from the chain, the privacy model has been broken somewhere upstream.
+
+**Who holds the table.** The issuer does, and has to: it negotiated every rate and owes
+every rate, so it cannot cost its own liability from a single number — a ledger priced at
+one rate is wrong for every introducer but one. So the issuer's client takes a `rates` map
+and an introducer's client takes none, which puts the asymmetry in the type rather than in a
+comment. An introducer's client cannot compute another introducer's fee even by accident,
+because it was never given the input. In production that table comes from the issuer's own
+systems, where the agreements already live; here it comes from fixtures.
+
+**Revisit when:** anyone proposes putting a rate, a fee or a total on chain "just for the
+demo", or asks why the subscription amounts are public.
+
+### D11 — Every state change emits an event.
+*Added after review: only `claim` did.*
+
+`subscribe`, `register_introducer` and `recover` all mutated storage silently. The README
+claimed third parties could audit attribution off the chain, and for three of the four
+state changes there was nothing to audit — worst of all for `recover`, since a clawback is
+the single action a distributor most wants evidence of and it announced nothing.
+
+All four now publish. The payloads carry only values that are already public by design:
+
+| event | topics | data |
+|---|---|---|
+| `register` | `register`, code | owner address |
+| `subscribe` | `subscribe`, code | attribution id, subscribed amount |
+| `claimed` | `claimed`, code | the ids claimed |
+| `recovered` | `recovered`, code | the attribution id |
+
+**What is deliberately absent.** No totals. `claim` publishes ids rather than a sum, because
+one number would hand an observer the exact settlement basis and undo D10. Nothing carries a
+rate, a fee or an earnings figure, for the same reason.
+
+**Why events rather than polling.** Both work; events make the history streamable and
+timestamped without a client diffing `get_ledger` against its own previous answer. Linking a
+`claimed` event to the confidential transfer that follows it tells an observer *who* was paid
+and *when* — never *how much*, which is the property D10 actually protects.
+
+**Revisit when:** a new entry point is added, or someone wants to publish a total.
