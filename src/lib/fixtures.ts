@@ -22,12 +22,27 @@ import type { Amount, IntroducerCode, Timestamp } from '@/lib/types.ts';
 
 /** CHANGE THIS if you pick a different name — it is in the video. */
 export const FUND = {
-  name: 'Calder Short-Duration Income Fund',
+  // Non-breaking hyphen (U+2011): the name wraps as "Calder Short‑Duration /
+  // Income Fund" on a phone instead of breaking after "Short-".
+  name: 'Calder Short‑Duration Income Fund',
   unitCode: 'CSDIF',
   /** A money-market-style fund holds ~1.00, which keeps units readable. */
   unitPrice: '1.00' as Amount,
   minimumSubscription: '50000.00' as Amount,
   domicile: 'Singapore',
+};
+
+/**
+ * The product, as distinct from the fund. The fund is what the INVESTOR sees
+ * (they are buying Calder units through someone they trust); the product is
+ * what the SCOUT and the ISSUER see. Working name — change it here and it
+ * changes everywhere.
+ */
+export const PRODUCT = {
+  name: 'ScoutShare',
+  tagline: "Scout's honour.",
+  /** What we call an introducer on screen. One word, no jargon. */
+  roleLabel: 'Scout',
 };
 
 /**
@@ -109,22 +124,40 @@ export const INTRODUCERS: FixtureIntroducer[] = [
     code: 'CALDER-PR7',
     displayName: 'Raghunathan Family Office',
     trailFeeBps: 50,
-    feeClaimed: '2000.00',
+    // = the one settled row below: 250,000 at 50 bps.
+    feeClaimed: '1250.00',
   },
   {
     code: 'CALDER-DO2',
-    displayName: 'Okonkwo Private Clients',
+    // Matches scripts/seed-demo.sh so stub and live show the same names.
+    displayName: 'Dorsey Oakes Partners',
     trailFeeBps: 70,
     feeClaimed: '0.00',
   },
 ];
 
-/** The link an introducer shares. Change the host when the UI is deployed. */
+/** The link an introducer shares, when there is no browser to ask. */
 export const LINK_BASE = 'https://introducer-rails.demo/i';
 
+/**
+ * In a browser the link points at THIS deployment, so the demo is one tab:
+ * copy the link on the scout screen, open it, and the investor flow runs
+ * against the same in-memory stub. Outside a browser (smoke test) it falls
+ * back to the placeholder host.
+ */
 export function linkFor(code: IntroducerCode): string {
-  return `${LINK_BASE}/${code}`;
+  const base =
+    typeof location !== 'undefined' && location.origin ? `${location.origin}/i` : LINK_BASE;
+  return `${base}/${code}`;
 }
+
+/**
+ * How long the stub pretends the ISSUER's settlement proof takes. The issuer
+ * proves natively (bb, not WASM) — SPIKE.md measured register at 0.11s native
+ * against 1.2s in Node — so a payout run is a short beat, not a long one.
+ * Includes a notional transaction confirmation.
+ */
+export const SETTLEMENT_PROVING_MS = 1400;
 
 // ---------------------------------------------------------------------------
 // Subscriptions already on the books
@@ -145,6 +178,12 @@ interface FixtureSeed {
    */
   daysAgo: number;
   feeSettled: boolean;
+  /**
+   * The investor redeemed inside the window and the issuer recovered the
+   * introduction. It stays on the book as evidence — the one action a scout
+   * most wants explained — but earns nothing and counts for nothing.
+   */
+  recovered?: boolean;
 }
 
 export interface FixtureSubscription extends FixtureSeed {
@@ -180,6 +219,18 @@ const SEEDS: FixtureSeed[] = [
     subscribed: '400000.00',
     daysAgo: 2,
     feeSettled: false,
+  },
+  {
+    // The reversed one. Mirrors seed-demo.sh's clawed-back row (180,000 on
+    // PR7) so the stub shows the same fourth state the chain does.
+    fullName: 'Henrik Solberg',
+    label: 'H. Solberg \u00b7 Singapore',
+    countryCode: 'SG',
+    introducerCode: 'CALDER-PR7',
+    subscribed: '180000.00',
+    daysAgo: 31,
+    feeSettled: false,
+    recovered: true,
   },
   {
     fullName: 'Alessandra Ruiz',
@@ -239,19 +290,26 @@ export function unitsFor(subscribed: Amount, unitPrice: Amount = FUND.unitPrice)
 // Derived totals, computed from the fixtures above so they cannot drift
 // ---------------------------------------------------------------------------
 
+/** Rows that earn: everything not clawed back. Recovered rows are evidence only. */
+export const EARNING = SUBSCRIPTIONS.filter((s) => !s.recovered);
+
 export const ISSUER_TOTALS = (() => {
-  const subscribedTotal = addAmounts(...SUBSCRIPTIONS.map((s) => s.subscribed));
+  const subscribedTotal = addAmounts(...EARNING.map((s) => s.subscribed));
   const feeAccruedTotal = addAmounts(
-    ...SUBSCRIPTIONS.map((s) => feeOn(s.subscribed, rateFor(s.introducerCode))),
+    ...EARNING.map((s) => feeOn(s.subscribed, rateFor(s.introducerCode))),
   );
-  const feesSettledTotal = addAmounts(...INTRODUCERS.map((i) => i.feeClaimed));
+  // Settled is a property of a ROW now, not a running total per introducer,
+  // so the book can say which introduction was the one that paid.
+  const feesSettledTotal = addAmounts(
+    ...EARNING.filter((s) => s.feeSettled).map((s) => feeOn(s.subscribed, rateFor(s.introducerCode))),
+  );
   const feeVestingTotal = addAmounts(
-    ...SUBSCRIPTIONS.filter((s) => !s.vested).map((s) =>
+    ...EARNING.filter((s) => !s.vested).map((s) =>
       feeOn(s.subscribed, rateFor(s.introducerCode)),
     ),
   );
   return {
-    investorCount: SUBSCRIPTIONS.length,
+    investorCount: EARNING.length,
     introducerCount: INTRODUCERS.length,
     subscribedTotal,
     unitsIssued: unitsFor(subscribedTotal),
@@ -272,7 +330,16 @@ export function rateFor(code: IntroducerCode): number {
 /** Fee accrued for one introducer, counting only entries past their window. */
 export function vestedFor(code: IntroducerCode): Amount {
   return addAmounts(
-    ...SUBSCRIPTIONS.filter((s) => s.introducerCode === code && s.vested).map((s) =>
+    ...EARNING.filter((s) => s.introducerCode === code && s.vested).map((s) =>
+      feeOn(s.subscribed, rateFor(code)),
+    ),
+  );
+}
+
+/** Fee already settled for one introducer — the sum of its paid rows. */
+export function settledFor(code: IntroducerCode): Amount {
+  return addAmounts(
+    ...EARNING.filter((s) => s.introducerCode === code && s.feeSettled).map((s) =>
       feeOn(s.subscribed, rateFor(code)),
     ),
   );
@@ -297,6 +364,20 @@ export function vestedFor(code: IntroducerCode): Amount {
       throw new Error(
         `fixtures: ${i.code} has claimed ${i.feeClaimed} but only ${vested} has vested`,
       );
+    }
+    // And it must agree with the rows: a paid row is where a claimed figure
+    // comes from, so the two cannot be edited independently.
+    const settled = settledFor(i.code);
+    if (toCents(i.feeClaimed) !== toCents(settled)) {
+      throw new Error(
+        `fixtures: ${i.code} says feeClaimed ${i.feeClaimed} but its settled rows sum to ${settled}`,
+      );
+    }
+    // A settled row must have vested first.
+    for (const s of SUBSCRIPTIONS) {
+      if (s.introducerCode === i.code && s.feeSettled && !s.vested) {
+        throw new Error(`fixtures: ${s.label} is settled but has not vested`);
+      }
     }
   }
   if (!SUBSCRIPTIONS.some((s) => s.vested) || !SUBSCRIPTIONS.some((s) => !s.vested)) {

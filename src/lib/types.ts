@@ -248,6 +248,14 @@ export interface BookEntry {
    * the live client takes from the contract.
    */
   state?: 'vesting' | 'claimable' | 'claimed' | 'recovered';
+  /**
+   * The attribution's id on the contract, as a string. Additive: a stable row
+   * key for the UI and the handle an issuer action (settle, recover) would
+   * take. The stub mints its own; the live client has the real one.
+   */
+  id?: string;
+  /** When this entry was settled. Set only once `state` is 'claimed'. */
+  feePaidAt?: Timestamp;
 }
 
 export interface IntroducerBook {
@@ -275,6 +283,14 @@ export interface IntroducerBook {
    * this comes from client config and must be set to match the deployment.
    */
   vestingWindowSecs?: number;
+  /**
+   * Whether this introducer has completed the one-time payout setup — on
+   * chain, registering a confidential account so settlements can land. The
+   * scout screen shows a "Set up payouts" card until this is true. Optional
+   * so a client that cannot know (today: the live client) leaves it unset,
+   * which the UI treats as "don't nag".
+   */
+  payoutsReady?: boolean;
   entries: BookEntry[];
   totals: {
     introducedCount: number;
@@ -303,6 +319,22 @@ export interface ClaimReceipt {
   provingMs: number;
 }
 
+/**
+ * The issuer's payout run: every vested, unrecovered, unsettled introduction
+ * across every introducer, settled in one go at each introducer's private
+ * rate. The proof here is the issuer's — a confidential transfer out of its
+ * pool — which is why `provingMs` lives on this receipt and not on the
+ * introducer's claim. Amounts are deliberately absent: a payout run's total
+ * is exactly the number D10 says must never be published.
+ */
+export interface SettlementReceipt {
+  settledCount: number;
+  introducerCount: number;
+  txHash: TxHash;
+  at: Timestamp;
+  provingMs: number;
+}
+
 // ---------------------------------------------------------------------------
 // Issuer: attribution ledger (screen 3)
 // ---------------------------------------------------------------------------
@@ -324,6 +356,9 @@ export interface LedgerRow {
    * unclaimed. The issuer's side of the vesting window.
    */
   recoverable: boolean;
+  /** Additive — see `BookEntry.id` and `BookEntry.state`. */
+  id?: string;
+  state?: 'vesting' | 'claimable' | 'claimed' | 'recovered';
 }
 
 export interface AttributionLedger {
@@ -405,10 +440,24 @@ export interface IntroducerRailsClient {
   }>;
   getBook(): Promise<IntroducerBook>;
   claimFee(): Promise<ClaimReceipt>;
+  /**
+   * One-time payout setup for an introducer — on chain, registering their
+   * confidential account. Framed on screen like adding a bank account to a
+   * referral programme. OPTIONAL (additive): a client that does not implement
+   * it should leave `IntroducerBook.payoutsReady` unset too.
+   */
+  setUpPayouts?(): Promise<{ at: Timestamp }>;
 
   // -- ledger (issuer / auditor) -------------------------------------------
   getLedger(): Promise<AttributionLedger>;
   getAuditorAttestation(): Promise<AuditorAttestation>;
+  /**
+   * The issuer's payout run: settle every vested, unsettled introduction at
+   * its introducer's private rate. This is the "you never chase" promise made
+   * literal — the introducer does not have to call `claimFee` first.
+   * OPTIONAL (additive): absent on a client that cannot sign for the issuer.
+   */
+  runSettlement?(): Promise<SettlementReceipt>;
 
   // -- demo plumbing -------------------------------------------------------
   /**
@@ -455,11 +504,17 @@ export function formatAmount(amount: Amount): string {
   return format(GROUPED, amount);
 }
 
-/** Same, with the currency: "250000.00" -> "$250,000.00". */
+/**
+ * Same, with the currency: "250000.00" -> "US$250,000.00".
+ *
+ * "US$", not "$": to a Singapore, Australian or New Zealand reader a bare
+ * dollar sign means their own dollar, and this fund settles in US dollars.
+ * `en-GB` with the plain symbol renders exactly "US$".
+ */
 const USD = new Intl.NumberFormat('en-GB', {
   style: 'currency',
   currency: 'USD',
-  currencyDisplay: 'narrowSymbol',
+  currencyDisplay: 'symbol',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
