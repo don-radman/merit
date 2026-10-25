@@ -58,21 +58,32 @@ issuer and that introducer, and settlement is a confidential transfer out of the
 
 This build ships **exactly three screens**. Anything not on this list is out of scope.
 
-### 1. Investor — subscribe
-Opens an introducer link, creates a passkey wallet (no seed phrase, no gas), passes a mock
-KYC step, subscribes with USDC, and sees a plain-English holdings statement. The six flow
-stages above are shown as visible progress, because the trustline authorization and the
-proof generation are both real waits.
+### 1. Investor — subscribe (`/i/<CODE>`)
+Opens a scout's link, creates a passkey account (no seed phrase, no gas, and the word
+"wallet" never appears), passes a mock KYC step, subscribes in US dollars, and sees a
+plain-English holdings statement. Five stages are shown as visible progress; the fund
+approving the account is the one real wait. There is **no proof on this path** — the
+contract records attribution in the clear by design, and the only proof in the system is
+the fund's, at settlement. Add `?frame=phone` to record it in a phone-sized frame.
 
-### 2. Introducer — my book
-Their own book and nothing else: who they introduced, how much each subscribed, fee
-accrued, fee already claimed, and a claim button. Fee figures are decrypted client-side
-for this introducer only.
+### 2. Scout — your book (`/scout`)
+The hero screen, built for someone who has never used web3. A share link, three numbers
+(Earned · On its way · Paid out), and one row per introduction with a status that answers
+"when do I get paid": **Vesting → Ready → Paid**, or **Reversed** if the client exited
+early. A **"What the world sees"** toggle re-renders the same screen as the public record:
+the fees become dots and a banner says what the chain holds. Fee figures are computed at
+the scout's own rate and shown to them only. A one-time **Set up payouts** card stands in
+for confidential-account registration, framed like adding a bank account.
 
-### 3. Issuer — attribution ledger
-Every attribution across all introducers, total subscribed, and outstanding fee liability.
-Includes an auditor reconciliation line: totals reconcile through the auditor view key
-without any individual position being public.
+### 3. Fund — attribution ledger (`/issuer`)
+Every attribution across all scouts, each fee at *that* scout's private rate (the fund is
+the one party that holds every rate), outstanding liability, and a **Run payout** button
+that settles every vested introduction in one go — the "you never chase" promise made
+literal. Ends with the auditor reconciliation line: totals reconcile through the auditor
+key without any scout's rate or payout being public.
+
+The walkthrough for the video is in [DEMO.md](DEMO.md); the visual system is in
+[DESIGN.md](DESIGN.md).
 
 ## Architecture
 

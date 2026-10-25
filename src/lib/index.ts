@@ -15,8 +15,8 @@ import { INTRODUCERS, TRAIL_FEE_BPS, rateFor } from '@/lib/fixtures.ts';
 import type { ClientConfig, IntroducerRailsClient } from '@/lib/types.ts';
 
 export * from '@/lib/types.ts';
-export { setStubFailure } from '@/lib/stub.ts';
-export { FUND, TRAIL_FEE_BPS, linkFor } from '@/lib/fixtures.ts';
+export { setStubFailure, stubAdvanceVesting, setStubPayoutsReady, onStubChange } from '@/lib/stub.ts';
+export { FUND, PRODUCT, TRAIL_FEE_BPS, VESTING_WINDOW_DAYS, linkFor } from '@/lib/fixtures.ts';
 
 export type ClientMode = 'stub' | 'live';
 

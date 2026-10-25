@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import Shell from '@/components/Shell.tsx';
+import { CheckIcon } from '@/components/icons.tsx';
 import {
   FUND,
   createClient,
@@ -24,17 +26,22 @@ import type {
  * on the proving step that explains the product while the user waits for it.
  */
 
+/**
+ * Five stages, not six. There is no proof on this path \u2014 the contract records
+ * the introduction in the clear by design, and the only proof in the system
+ * is the fund's, at settlement. The 'generating-proof' stage id still exists
+ * in the frozen type and is simply never emitted.
+ */
 const STAGES: Array<{ id: SubscriptionStage; label: string; note?: string }> = [
-  { id: 'awaiting-signature', label: 'Confirming with your passkey' },
-  { id: 'authorizing-trustline', label: 'The fund is approving your account' },
-  { id: 'transferring-usdc', label: 'Sending your USDC' },
-  { id: 'minting-units', label: 'Issuing your fund units' },
+  { id: 'awaiting-signature', label: 'Confirming with Face ID' },
   {
-    id: 'generating-proof',
-    label: "Sealing your introducer's fee",
-    note: 'The slowest step. Your introducer\u2019s commission is paid confidentially \u2014 only they, the fund and an auditor can see it. Your subscription is public; what they earn on it is not.',
+    id: 'authorizing-trustline',
+    label: 'Calder is approving your account',
+    note: 'The fund checks your details and approves your account before any units can be issued. This is the one step that takes a moment.',
   },
-  { id: 'accruing-fee', label: 'Recording the introduction' },
+  { id: 'transferring-usdc', label: 'Sending your US dollars' },
+  { id: 'minting-units', label: 'Issuing your fund units' },
+  { id: 'accruing-fee', label: 'Recording your introduction' },
 ];
 
 const ERROR_COPY: Record<ClientErrorCode, { title: string; body: string }> = {
@@ -59,7 +66,7 @@ const ERROR_COPY: Record<ClientErrorCode, { title: string; body: string }> = {
     body: 'This is normally quick. Nothing has been taken from you.',
   },
   'insufficient-usdc': {
-    title: 'Not enough USDC in your wallet',
+    title: 'Not enough US dollars in your account',
     body: 'Top up and try again. Nothing has been taken.',
   },
   'below-minimum': { title: 'Below the minimum subscription', body: '' },
@@ -203,7 +210,7 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
     <div className="banner banner--err" role="alert">
       <strong>{ERROR_COPY[error.code].title}</strong>
       {error.code === 'below-minimum' && error.details?.minimum
-        ? `The minimum is ${formatUsd(error.details.minimum)} USDC.`
+        ? `The minimum is ${formatUsd(error.details.minimum)}.`
         : ERROR_COPY[error.code].body}
     </div>
   );
@@ -212,39 +219,39 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
 
   if (step === 'no-code') {
     return (
-      <main className="page">
+      <Shell brand="fund">
         <h1>{FUND.name}</h1>
         <p className="muted">
           This fund is offered through introducers. Open the link your
           introducer sent you to subscribe.
         </p>
-      </main>
+      </Shell>
     );
   }
 
   if (step === 'loading') {
     return (
-      <main className="page">
+      <Shell brand="fund">
         <p className="muted">
           <span className="spinner" /> Checking your link…
         </p>
-      </main>
+      </Shell>
     );
   }
 
   if (step === 'bad-code' || !resolved) {
     return (
-      <main className="page">
+      <Shell brand="fund">
         <h1>{FUND.name}</h1>
         {errorBanner}
-      </main>
+      </Shell>
     );
   }
 
   // ---- the flow ------------------------------------------------------------
 
   return (
-    <main className="page">
+    <Shell brand="fund">
       <div className="eyebrow">Introduced by {resolved.displayName}</div>
       <h1>{resolved.fundName}</h1>
       <p className="muted">
@@ -256,15 +263,14 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
 
       {step === 'intro' && (
         <div className="card">
-          <h2>Create your wallet</h2>
+          <h2>Create your account</h2>
           <p className="muted">
-            Your wallet is secured by a passkey — the same Face ID, fingerprint
-            or device PIN you already use. There is no password to remember and
-            no recovery phrase to write down.
+            Secured with the Face ID, fingerprint or device PIN you already use.
+            Nothing to remember, nothing to write down.
           </p>
           <div className="actions">
-            <button onClick={createWallet} disabled={busy}>
-              {busy ? <><span className="spinner" /> Waiting…</> : 'Create wallet'}
+            <button className="btn" onClick={createWallet} disabled={busy} aria-busy={busy}>
+              {busy && <span className="spinner" />} Create account
             </button>
           </div>
         </div>
@@ -311,8 +317,8 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
           </select>
 
           <div className="actions">
-            <button onClick={submitKyc} disabled={busy || kyc.fullName.trim().length < 2}>
-              {busy ? <><span className="spinner" /> Checking…</> : 'Continue'}
+            <button className="btn" onClick={submitKyc} disabled={busy || kyc.fullName.trim().length < 2} aria-busy={busy}>
+              {busy && <span className="spinner" />} Check my details
             </button>
           </div>
         </div>
@@ -321,9 +327,9 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
       {step === 'amount' && (
         <div className="card">
           <h2>How much would you like to subscribe?</h2>
-          <label htmlFor="amount">Amount in USDC</label>
+          <label htmlFor="amount">Amount in US dollars</label>
           <div className="amount">
-            <span>USDC</span>
+            <span>US$</span>
             <input
               id="amount"
               inputMode="decimal"
@@ -337,7 +343,7 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
             a fee by the fund — not by you — and never sees your balance.
           </p>
           <div className="actions">
-            <button onClick={subscribe} disabled={busy || !amount.trim()}>
+            <button className="btn" onClick={subscribe} disabled={busy || !amount.trim()}>
               Subscribe {amount.trim() ? formatUsd(amount) : ''}
             </button>
           </div>
@@ -360,7 +366,13 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
               return (
                 <li key={s.id} data-state={state}>
                   <span className="mark">
-                    {state === 'done' ? '✓' : state === 'active' ? <span className="spinner" /> : '·'}
+                    {state === 'done' ? (
+                      <CheckIcon size={14} label="Done" />
+                    ) : state === 'active' ? (
+                      <span className="spinner" />
+                    ) : (
+                      <span className="stage-dot" aria-hidden />
+                    )}
                   </span>
                   <span>
                     {s.label}
@@ -408,11 +420,10 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
           </div>
 
           <p className="muted small" style={{ marginTop: 16 }}>
-            Reference {receipt.txHash.slice(0, 12)}… · fee sealed in{' '}
-            {(receipt.provingMs / 1000).toFixed(1)}s
+            Recorded on Stellar · reference {receipt.txHash.slice(0, 12)}…
           </p>
         </>
       )}
-    </main>
+    </Shell>
   );
 }

@@ -1,16 +1,24 @@
 import { useState } from 'react';
-import { MODE, createClient, setStubFailure } from '@/lib/index.ts';
+import {
+  MODE,
+  createClient,
+  setStubFailure,
+  setStubPayoutsReady,
+  stubAdvanceVesting,
+} from '@/lib/index.ts';
 import type { ClientErrorCode } from '@/lib/index.ts';
 import { navigate } from '@/route.ts';
 import type { Route } from '@/route.ts';
 
 /**
- * Dev-only toolbar. Two jobs, both aimed at the demo rather than at coding:
+ * Dev-only toolbar. Aimed at the demo, not at coding:
  *
- *   Reset   — back to seeded fixture state. You will hit this between every
- *             video take, far more than anything else here.
- *   Arm     — make the NEXT client call fail with a chosen code, so the error
- *             states actually get built and can be shown on camera.
+ *   Screens    jump between the three screens and the phone frame
+ *   Vest all   pretend the window has passed, so Ready and the payout run
+ *              can be shown without waiting 90 days
+ *   Show setup put the one-time "Set up payouts" card back
+ *   Fail next  make the NEXT client call fail with a chosen code
+ *   Reset      back to seeded fixture state — between every take
  *
  * It renders nothing in a production build.
  */
@@ -24,6 +32,7 @@ const ARMABLE: ClientErrorCode[] = [
   'below-minimum',
   'proof-failed',
   'not-yet-vested',
+  'nothing-to-claim',
   'network',
 ];
 
@@ -31,6 +40,8 @@ export default function DevBar({ route }: { route: Route }) {
   const [armed, setArmed] = useState<ClientErrorCode | ''>('');
 
   if (!import.meta.env.DEV) return null;
+
+  const scoutCode = route.screen === 'scout' ? route.code ?? 'CALDER-PR7' : 'CALDER-PR7';
 
   const reset = async () => {
     await createClient({ role: 'issuer' }).resetDemo();
@@ -44,32 +55,53 @@ export default function DevBar({ route }: { route: Route }) {
     setStubFailure(code === '' ? null : code);
   };
 
-  return (
-    <div className="devbar">
-      <strong>dev</strong>
-      {MODE === 'stub' && <span className="badge">STUB</span>}
+  const is = (s: Route['screen']) => (route.screen === s ? ' is-active' : '');
 
-      <button className="secondary" onClick={() => navigate('/i/CALDER-PR7')}>
-        Investor
-      </button>
-      <button className="secondary" onClick={() => navigate('/introducer')}>
-        Book
-      </button>
-      <button className="secondary" onClick={() => navigate('/issuer')}>
-        Ledger
-      </button>
+  return (
+    <div className="devbar" role="toolbar" aria-label="Demo controls">
+      <strong>demo</strong>
+      <span className={`badge badge--${MODE}`}>{MODE}</span>
+
+      <span className="devbar__group">
+        <button className={`btn btn--ghost btn--sm${is('investor')}`} onClick={() => navigate('/i/CALDER-PR7')}>
+          Investor
+        </button>
+        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/i/CALDER-PR7?frame=phone')} title="Investor flow in a phone frame">
+          Phone
+        </button>
+        <button className={`btn btn--ghost btn--sm${is('scout')}`} onClick={() => navigate('/scout')}>
+          Scout
+        </button>
+        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/scout?code=CALDER-DO2')} title="The other scout, on a different rate">
+          Scout 2
+        </button>
+        <button className={`btn btn--ghost btn--sm${is('issuer')}`} onClick={() => navigate('/issuer')}>
+          Fund
+        </button>
+      </span>
 
       <span className="spacer" />
 
-      <label htmlFor="arm" style={{ margin: 0 }}>
-        Fail next:
+      {MODE === 'stub' && (
+        <span className="devbar__group">
+          <button className="btn btn--ghost btn--sm" onClick={() => stubAdvanceVesting()} title="Pretend the vesting window has passed">
+            Vest all
+          </button>
+          <button
+            className="btn btn--ghost btn--sm"
+            onClick={() => setStubPayoutsReady(scoutCode, false)}
+            title="Show the one-time payout setup card again"
+          >
+            Show setup
+          </button>
+        </span>
+      )}
+
+      <label htmlFor="arm" className="devbar__label">
+        Fail next
       </label>
-      <select
-        id="arm"
-        value={armed}
-        onChange={(e) => arm(e.target.value as ClientErrorCode | '')}
-      >
-        <option value="">— nothing —</option>
+      <select id="arm" value={armed} onChange={(e) => arm(e.target.value as ClientErrorCode | '')}>
+        <option value="">—</option>
         {ARMABLE.map((c) => (
           <option key={c} value={c}>
             {c}
@@ -77,10 +109,9 @@ export default function DevBar({ route }: { route: Route }) {
         ))}
       </select>
 
-      <button className="secondary" onClick={reset}>
-        Reset demo
+      <button className="btn btn--ghost btn--sm" onClick={reset}>
+        Reset
       </button>
-      <span className="muted small">{route.screen}</span>
     </div>
   );
 }
