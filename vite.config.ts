@@ -9,5 +9,12 @@ export default defineConfig({
     // secure context, and localhost counts as one.
     host: 'localhost',
     port: 5173,
+    // bb.js needs SharedArrayBuffer to prove in the browser, and that needs
+    // cross-origin isolation. Without these two headers proving either refuses
+    // to start or silently drops to a single thread and gets much slower.
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+    },
   },
 });

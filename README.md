@@ -109,6 +109,11 @@ traditional funds — this makes that layer programmable, private and auditable.
 per-fund SaaS plus a small basis-point platform fee on introduced AUM, wrapped in the
 service of designing and running the introducer programme.
 
+**The same contract pays brokers.** Insurance commission chargeback and fund placement-fee
+recovery are the same mechanic, and the vesting window is a config value — two markets, one
+codebase. An ecosystem scan found the insurance work on Stellar is all claims-side
+parametric cover; nothing touches commission or distribution.
+
 **Community mode** is the same contract with a different trigger: an advocate earns a
 capped reward when a verified outcome lands. Not built this weekend; noted because it is
 one config change, not a second product.

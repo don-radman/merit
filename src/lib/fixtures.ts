@@ -36,6 +36,33 @@ export const TRAIL_FEE_BPS = 50;
 /** Who holds the auditor view key in the demo. */
 export const AUDITOR = 'Pellier & Co (appointed auditor)';
 
+/**
+ * How long a fee sits before the introducer can withdraw it. Inside the window
+ * the issuer can recover it if the investor redeems early — the same mechanic
+ * as insurance commission chargeback.
+ *
+ * 90 days reads well on screen and is plausible for a fund trail fee.
+ */
+export const VESTING_WINDOW_DAYS = 90;
+
+const DAY_MS = 86_400_000;
+
+/** An ISO timestamp N days before now, to the second. */
+export function daysAgoIso(days: number): Timestamp {
+  return new Date(Date.now() - days * DAY_MS).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/** When a fee subscribed at `at` becomes withdrawable. */
+export function vestsAtFor(at: Timestamp): Timestamp {
+  return new Date(Date.parse(at) + VESTING_WINDOW_DAYS * DAY_MS)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z');
+}
+
+export function isVested(at: Timestamp, now: number = Date.now()): boolean {
+  return Date.parse(vestsAtFor(at)) <= now;
+}
+
 // ---------------------------------------------------------------------------
 // Timing
 // ---------------------------------------------------------------------------
@@ -43,11 +70,16 @@ export const AUDITOR = 'Pellier & Co (appointed auditor)';
 /**
  * How long the stub pretends proof generation takes.
  *
- * REPLACE WITH THE MEASURED NUMBER once the spike lands — the real figure for
- * in-browser UltraHonk proving decides whether the fee claim is demoed live or
- * pre-warmed. Build the spinner against this; do not build against 0.
+ * MEASURED, 25 Oct: a transfer-shaped UltraHonk proof took 6.5s in Node on an
+ * M-series Mac, via stellar-confidential-token-sdk with OpenZeppelin's shipped
+ * circuits. A register proof is much cheaper at 1.2-1.4s, and warm-up is
+ * negligible, so pre-warming buys nothing — the cost is the circuit.
+ *
+ * In-browser is expected to be SLOWER than this (WASM, and single-threaded
+ * without cross-origin isolation). Re-measure in the browser before recording
+ * the demo video and update this again.
  */
-export const PROVING_DELAY_MS = 2800;
+export const PROVING_DELAY_MS = 6500;
 
 /** Everything else in the stub is roughly this fast, per stage. */
 export const STAGE_DELAY_MS = 450;
@@ -87,56 +119,72 @@ export function linkFor(code: IntroducerCode): string {
 // Subscriptions already on the books
 // ---------------------------------------------------------------------------
 
-export interface FixtureSubscription {
-  /** Shown to the investor themselves, on their own statement. */
+interface FixtureSeed {
   fullName: string;
-  /** Shown in the introducer book and the issuer ledger. */
   label: string;
   countryCode: string;
   introducerCode: IntroducerCode;
   subscribed: Amount;
-  at: Timestamp;
+  /**
+   * Days before *now*, not a fixed date. Two of these are past the 90-day
+   * window and two are inside it, so the book screen always shows both a
+   * claimable balance and a disabled, still-vesting one — the state that makes
+   * the screen worth looking at, and the only way the claim button's disabled
+   * case ever appears.
+   */
+  daysAgo: number;
   feeSettled: boolean;
 }
 
-export const SUBSCRIPTIONS: FixtureSubscription[] = [
+export interface FixtureSubscription extends FixtureSeed {
+  at: Timestamp;
+  vestsAt: Timestamp;
+  vested: boolean;
+}
+
+const SEEDS: FixtureSeed[] = [
   {
     fullName: 'Marguerite Oyelaran',
-    label: 'M. Oyelaran · Singapore',
+    label: 'M. Oyelaran \u00b7 Singapore',
     countryCode: 'SG',
     introducerCode: 'CALDER-PR7',
     subscribed: '250000.00',
-    at: '2026-10-19T04:12:00Z',
+    daysAgo: 166,
     feeSettled: true,
   },
   {
     fullName: 'Thomas Brandt-Nilsen',
-    label: 'T. Brandt-Nilsen · Australia',
+    label: 'T. Brandt-Nilsen \u00b7 Australia',
     countryCode: 'AU',
     introducerCode: 'CALDER-PR7',
     subscribed: '1000000.00',
-    at: '2026-10-21T23:40:00Z',
+    daysAgo: 145,
     feeSettled: false,
   },
   {
     fullName: 'Yuki Harada',
-    label: 'Y. Harada · Singapore',
+    label: 'Y. Harada \u00b7 Singapore',
     countryCode: 'SG',
     introducerCode: 'CALDER-PR7',
     subscribed: '400000.00',
-    at: '2026-10-23T08:05:00Z',
+    daysAgo: 2,
     feeSettled: false,
   },
   {
     fullName: 'Alessandra Ruiz',
-    label: 'A. Ruiz · Australia',
+    label: 'A. Ruiz \u00b7 Australia',
     countryCode: 'AU',
     introducerCode: 'CALDER-DO2',
     subscribed: '600000.00',
-    at: '2026-10-24T02:55:00Z',
+    daysAgo: 1,
     feeSettled: false,
   },
 ];
+
+export const SUBSCRIPTIONS: FixtureSubscription[] = SEEDS.map((seed) => {
+  const at = daysAgoIso(seed.daysAgo);
+  return { ...seed, at, vestsAt: vestsAtFor(at), vested: isVested(at) };
+});
 
 // ---------------------------------------------------------------------------
 // Money helpers — integer cents internally, so no float ever touches a figure
@@ -184,6 +232,9 @@ export const ISSUER_TOTALS = (() => {
   const subscribedTotal = addAmounts(...SUBSCRIPTIONS.map((s) => s.subscribed));
   const feeAccruedTotal = addAmounts(...SUBSCRIPTIONS.map((s) => feeOn(s.subscribed)));
   const feesSettledTotal = addAmounts(...INTRODUCERS.map((i) => i.feeClaimed));
+  const feeVestingTotal = addAmounts(
+    ...SUBSCRIPTIONS.filter((s) => !s.vested).map((s) => feeOn(s.subscribed)),
+  );
   return {
     investorCount: SUBSCRIPTIONS.length,
     introducerCount: INTRODUCERS.length,
@@ -192,8 +243,19 @@ export const ISSUER_TOTALS = (() => {
     feeAccruedTotal,
     feesSettledTotal,
     outstandingFeeLiability: subtractAmounts(feeAccruedTotal, feesSettledTotal),
+    /** Of the outstanding liability, still inside its window. */
+    feeVestingTotal,
   };
 })();
+
+/** Fee accrued for one introducer, counting only entries past their window. */
+export function vestedFor(code: IntroducerCode): Amount {
+  return addAmounts(
+    ...SUBSCRIPTIONS.filter((s) => s.introducerCode === code && s.vested).map((s) =>
+      feeOn(s.subscribed),
+    ),
+  );
+}
 
 /**
  * Sanity check, run at import. If someone edits a figure and forgets the
@@ -207,12 +269,20 @@ export const ISSUER_TOTALS = (() => {
     }
   }
   for (const i of INTRODUCERS) {
-    const accrued = addAmounts(
-      ...SUBSCRIPTIONS.filter((s) => s.introducerCode === i.code).map((s) => feeOn(s.subscribed)),
-    );
-    if (toCents(i.feeClaimed) > toCents(accrued)) {
-      throw new Error(`fixtures: ${i.code} has claimed more than it accrued`);
+    // Claimed must not exceed VESTED, not merely accrued — an introducer
+    // cannot have withdrawn a fee that was still inside its window.
+    const vested = vestedFor(i.code);
+    if (toCents(i.feeClaimed) > toCents(vested)) {
+      throw new Error(
+        `fixtures: ${i.code} has claimed ${i.feeClaimed} but only ${vested} has vested`,
+      );
     }
+  }
+  if (!SUBSCRIPTIONS.some((s) => s.vested) || !SUBSCRIPTIONS.some((s) => !s.vested)) {
+    throw new Error(
+      'fixtures: the demo needs BOTH a vested and an unvested entry — ' +
+        'otherwise the claim button never shows its disabled state',
+    );
   }
   if (toCents(ISSUER_TOTALS.outstandingFeeLiability) < 0) {
     throw new Error('fixtures: negative outstanding fee liability');

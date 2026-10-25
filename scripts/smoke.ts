@@ -101,12 +101,16 @@ eq('book entry count', book.entries.length, 4);
 eq('book subscribedTotal', book.totals.subscribedTotal, '2150000.00');
 eq('book feeAccrued', book.totals.feeAccrued, '10750.00');
 eq('book feeClaimed', book.totals.feeClaimed, '2000.00');
-eq('book feeClaimable', book.totals.feeClaimable, '8750.00');
+eq('book feeClaimable is VESTED - claimed', book.totals.feeClaimable, '4250.00');
+eq('book feeVesting', book.totals.feeVesting, '4500.00');
+eq('book vestingWindowDays', book.totals ? book.vestingWindowDays : 0, 90);
+eq('entries carry vesting', book.entries.every((e) => typeof e.vested === 'boolean' && !!e.vestsAt), true);
+eq('some vested, some not', new Set(book.entries.map((e) => e.vested)).size, 2);
 eq('trailFeeBps', book.totals.feeAccrued, feeOn(book.totals.subscribedTotal));
 
 // --- 7. claim, then nothing left ------------------------------------------
 const claim = await intro.claimFee();
-eq('claim amount', claim.amount, '8750.00');
+eq('claim pays only the vested part', claim.amount, '4250.00');
 ok('claim generated a proof', claim.provingMs > 2000);
 
 const after = await intro.getBook();
@@ -114,7 +118,16 @@ eq('claimable after claim', after.totals.feeClaimable, '0.00');
 
 let nothing = '';
 try { await intro.claimFee(); } catch (e: any) { nothing = e.code; }
-eq('second claim rejects', nothing, 'nothing-to-claim');
+eq('second claim rejects as not-yet-vested', nothing, 'not-yet-vested');
+
+// An introducer whose every fee is still inside the window.
+const intro2 = createStubClient({ role: 'introducer', code: 'CALDER-DO2' });
+const book2 = await intro2.getBook();
+eq('DO2 has nothing claimable', book2.totals.feeClaimable, '0.00');
+eq('DO2 has it all vesting', book2.totals.feeVesting, '3000.00');
+let do2 = '';
+try { await intro2.claimFee(); } catch (e: any) { do2 = e.code; }
+eq('DO2 claim rejects as not-yet-vested', do2, 'not-yet-vested');
 
 // --- 8. issuer ledger + auditor -------------------------------------------
 const issuer = createStubClient({ role: 'issuer' });
@@ -122,7 +135,9 @@ const ledger = await issuer.getLedger();
 eq('ledger rows', ledger.rows.length, 5);
 eq('ledger subscribedTotal', ledger.totals.subscribedTotal, '2750000.00');
 eq('ledger introducerCount', ledger.totals.introducerCount, 2);
-eq('ledger outstanding', ledger.totals.outstandingFeeLiability, '3000.00');
+eq('ledger outstanding', ledger.totals.outstandingFeeLiability, '7500.00');
+eq('ledger feeVestingTotal', ledger.totals.feeVestingTotal, '7500.00');
+eq('issuer can recover unvested rows', ledger.rows.filter((r) => r.recoverable).length, 3);
 
 const att = await issuer.getAuditorAttestation();
 ok('auditor reconciles', att.reconciles);

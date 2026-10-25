@@ -37,6 +37,8 @@ import type {
   Wallet,
 } from './types.ts';
 
+import { formatAmount } from './types.ts';
+
 import {
   AUDITOR,
   FUND,
@@ -46,13 +48,16 @@ import {
   STAGE_DELAY_MS,
   SUBSCRIPTIONS,
   TRAIL_FEE_BPS,
+  VESTING_WINDOW_DAYS,
   addAmounts,
   feeOn,
   fromCents,
   linkFor,
+  isVested,
   subtractAmounts,
   toCents,
   unitsFor,
+  vestsAtFor,
 } from './fixtures.ts';
 
 // ---------------------------------------------------------------------------
@@ -127,6 +132,15 @@ const hash = () =>
 function accruedFor(code: IntroducerCode): string {
   return addAmounts(
     ...state.subs.filter((s) => s.introducerCode === code).map((s) => feeOn(s.subscribed)),
+  );
+}
+
+/** Accrued AND past its vesting window — the only part that can be withdrawn. */
+function vestedAccruedFor(code: IntroducerCode): string {
+  return addAmounts(
+    ...state.subs
+      .filter((s) => s.introducerCode === code && isVested(s.at))
+      .map((s) => feeOn(s.subscribed)),
   );
 }
 
@@ -294,9 +308,9 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
           clawbackEnabled: true,
         },
         summary: [
-          `You hold ${units} units of the ${FUND.name}.`,
-          `Each unit is currently valued at ${FUND.unitPrice} USD, so your holding is worth about ${valueUsd} USD.`,
-          `You subscribed ${subscribedTotal} USDC in total. Units were issued directly to your passkey wallet.`,
+          `You hold ${formatAmount(units)} units of the ${FUND.name}.`,
+          `Each unit is currently valued at ${formatAmount(FUND.unitPrice)} USD, so your holding is worth about ${formatAmount(valueUsd)} USD.`,
+          `You subscribed ${formatAmount(subscribedTotal)} USDC in total. Units were issued directly to your passkey wallet.`,
           `This fund is a regulated-asset structure: the issuer approved your account before units could be issued, and can freeze or recall units under its normal compliance controls.`,
           `The person who introduced you is paid a fee by the fund, not by you. You never see their fee and they never see your balance.`,
         ],
@@ -329,22 +343,28 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
         subscribed: s.subscribed,
         at: s.at,
         feeAccrued: feeOn(s.subscribed),
+        vestsAt: vestsAtFor(s.at),
+        vested: isVested(s.at),
       }));
 
       const feeAccrued = accruedFor(introducer.code);
+      const feeVested = vestedAccruedFor(introducer.code);
       const feeClaimed = state.claimed[introducer.code] ?? '0.00';
 
       return {
         code: introducer.code,
         displayName: introducer.displayName,
         trailFeeBps: TRAIL_FEE_BPS,
+        vestingWindowDays: VESTING_WINDOW_DAYS,
         entries,
         totals: {
           introducedCount: entries.length,
           subscribedTotal: addAmounts(...mine.map((s) => s.subscribed)),
           feeAccrued,
           feeClaimed,
-          feeClaimable: subtractAmounts(feeAccrued, feeClaimed),
+          // vested minus claimed, NOT accrued minus claimed
+          feeClaimable: subtractAmounts(feeVested, feeClaimed),
+          feeVesting: subtractAmounts(feeAccrued, feeVested),
         },
       };
     },
@@ -354,8 +374,20 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       checkArmed();
 
       const code = bookCode;
-      const claimable = subtractAmounts(accruedFor(code), state.claimed[code] ?? '0.00');
+      const claimed = state.claimed[code] ?? '0.00';
+      const claimable = subtractAmounts(vestedAccruedFor(code), claimed);
+
       if (toCents(claimable) <= 0) {
+        // Distinguish "you have earned nothing" from "you have earned something
+        // that has not vested" — they are different sentences on screen.
+        const unclaimedAccrued = subtractAmounts(accruedFor(code), claimed);
+        if (toCents(unclaimedAccrued) > 0) {
+          fail(
+            'not-yet-vested',
+            `Fee accrued but still inside its ${VESTING_WINDOW_DAYS}-day window`,
+            { details: { vesting: unclaimedAccrued, windowDays: String(VESTING_WINDOW_DAYS) } },
+          );
+        }
         fail('nothing-to-claim', 'No accrued fee available to claim');
       }
 
@@ -364,9 +396,9 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       const provingMs = Date.now() - t;
       await sleep(STAGE_DELAY_MS);
 
-      state.claimed[code] = addAmounts(state.claimed[code] ?? '0.00', claimable);
+      state.claimed[code] = addAmounts(claimed, claimable);
       state.subs = state.subs.map((s) =>
-        s.introducerCode === code ? { ...s, feeSettled: true } : s,
+        s.introducerCode === code && isVested(s.at) ? { ...s, feeSettled: true } : s,
       );
 
       return { amount: claimable, txHash: hash(), at: now(), provingMs };
@@ -390,6 +422,10 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
           at: s.at,
           feeAccrued: feeOn(s.subscribed),
           feeSettled: s.feeSettled,
+          vestsAt: vestsAtFor(s.at),
+          // The issuer can still recover a fee that has accrued, not vested
+          // and not been paid out.
+          recoverable: !isVested(s.at) && !s.feeSettled,
         };
       });
 
@@ -407,6 +443,9 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
           unitsIssued: unitsFor(subscribedTotal),
           outstandingFeeLiability: subtractAmounts(feeAccruedTotal, feesSettledTotal),
           feesSettledTotal,
+          feeVestingTotal: addAmounts(
+            ...rows.filter((r) => !isVested(r.at)).map((r) => r.feeAccrued),
+          ),
         },
       };
     },

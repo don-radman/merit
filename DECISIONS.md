@@ -121,3 +121,47 @@ boundary that a frozen `types.ts` and a lint rule already enforce.
 
 The one structural thing we did take: **generated TypeScript bindings are committed**, so the
 UI builds on a machine with no Rust toolchain.
+
+---
+
+### D9 — Fees vest. The issuer can recover them before they do.
+*Added mid-build, after an insurance tangent turned out to be the same mechanic.*
+
+A fee now accrues immediately, is visible to the introducer immediately, becomes
+**withdrawable** only after a 90-day window, and is **recoverable by the issuer** inside it.
+
+The reason this is not scope creep: insurance commission chargeback and fund placement-fee
+recovery on early redemption are the same mechanic. Fund fees already need it — if an
+investor redeems in week three, the introducer should not keep a trail fee on money that
+left. Without a window there is nothing to recover from. That was a hole in the design, not
+a second product.
+
+**What the protocol gives us.** Clawback is a first-class asset flag (CAP-35): an issuer can
+burn a specific amount of a clawback-enabled asset from a trustline or from a claimable
+balance. The docs justify it in exactly our terms — securities regulations in many
+jurisdictions require issuers to be able to revoke assets. The docs' own example clears the
+clawback flag from a trustline, after which recovery is impossible: **dropping the flag is
+literally the vesting event.**
+
+**Limitation, inherited.** The flag is per-trustline, so clearing it releases everything that
+holder has, not one tranche. Per-attribution granularity needs either one claimable balance
+per fee carrying a time predicate (claimable by the earner after T, clawback-able by the
+issuer before T), or vesting state held in the contract. Decide that when `claim_fee` is
+written, not before.
+
+**The tension, recorded rather than solved.** Native clawback is a *classic asset* feature.
+Our confidential token is a Soroban contract token, so native clawback does not reach
+confidential balances. That leaves confidential amounts without native recovery, or a
+classic asset with clawback and public amounts — unless OpenZeppelin's confidential contract
+exposes its own admin recovery path. Its deployment examples include a compliant token and
+an allowlist policy, so there is an admin layer; whether it covers forced recovery of a
+confidential balance is **unverified**. Do not state either way in the README until someone
+has read that contract.
+
+**The caveat worth saying before we are asked.** Real chargeback is usually *pro-rata*, not
+binary: a holding cancels at month five of twelve and the issuer recovers seven twelfths. A
+time-predicate claimable balance cannot express that. This demo is all-or-nothing inside the
+window; the product computes pro-rata on a cancellation event. Say it in the pitch rather
+than be caught by it.
+
+**Revisit when:** `claim_fee` is implemented, and when anyone asks about pro-rata.

@@ -40,6 +40,9 @@ Consequences:
 
 ## Hour 4 spike — do this before any real contract work
 
+**The full runbook is in [SPIKE.md](./SPIKE.md)** — testnet identities, what UltraHonk
+actually requires, and the two paths to a verified proof. Summary below.
+
 **Target: one UltraHonk proof verified on testnet.** Not "a confidential balance that goes
 up" — a verified proof. Everything else is downstream of that working.
 
@@ -121,10 +124,11 @@ not an open question. Minimum set, named to match:
 |---|---|---|
 | `resolveCode` | `get_introducer(code) -> Introducer` | Read-only. Cheap. Do this one first. |
 | `registerIntroducer` | `register_introducer(owner, display_name) -> code` | Code generated onchain so it cannot collide. |
-| `subscribe` | `subscribe(investor, code, usdc_amount) -> (units, fee)` | Pulls USDC, mints units, writes attribution, accrues confidential fee. The big one. |
+| `subscribe` | `subscribe(investor, code, usdc_amount) -> (units, fee)` | Pulls USDC, mints units, writes attribution with a `vests_at`, accrues confidential fee. The big one. |
 | `getHoldings` | SAC `balance(investor)` | Classic asset via its SAC; no custom function needed. |
 | `getBook` | `get_book(code) -> Vec<Attribution>` | Plus the confidential balance read, decrypted client-side. |
-| `claimFee` | `claim_fee(code) -> amount` | Confidential transfer out. Policy-limited. |
+| `claimFee` | `claim_fee(code) -> amount` | Confidential transfer out, policy-limited. **Pays only entries past `vests_at`**; reject `not-yet-vested` when accrued but unvested. |
+| — (issuer) | `recover_fee(attribution_id)` | Issuer recovers an unvested, unclaimed fee when an investor redeems early. See DECISIONS.md D9 for the clawback-vs-confidential tension. |
 | `getLedger` | `get_ledger() -> Vec<Attribution>` | Issuer-only. Paginate if it gets long; four rows in the demo. |
 | `getAuditorAttestation` | auditor view-key read | Sum encrypted balances, compare to stated liability. |
 
@@ -136,3 +140,22 @@ stellar contract bindings typescript --contract-id <id> --output-dir ../src/bind
 
 Committing the generated bindings means the UI builds on a machine with no Rust toolchain
 installed. That matters when only one of you has it.
+
+
+## Vesting — storage and the choice to make
+
+Each attribution stores `vests_at` (subscription time + the window). `claim_fee` sums only
+entries past it; the issuer's `recover_fee` touches only entries before it.
+
+Two implementations, pick when you write `claim_fee`:
+
+1. **One claimable balance per fee**, carrying a time predicate — claimable by the earner
+   after T, clawback-able by the issuer before T. Uses the protocol directly, and clearing
+   the trustline's clawback flag is itself the vesting event. But the flag is per-trustline,
+   so it releases every tranche that holder has at once.
+2. **Vesting state in the contract** — a `vests_at` per attribution and an explicit check.
+   Per-attribution granularity, at the cost of doing it ourselves.
+
+(2) is almost certainly right for a 28-hour build; (1) is the better long answer. Either
+way the client interface does not change, because it already speaks in `vested` and
+`vestsAt` rather than in mechanisms.

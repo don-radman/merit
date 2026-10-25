@@ -94,6 +94,8 @@ export type ClientErrorCode =
   | 'proof-failed'
   /** Nothing available to claim right now. */
   | 'nothing-to-claim'
+  /** Fee has accrued but is still inside its vesting window. */
+  | 'not-yet-vested'
   /** RPC unreachable, timed out, or the transaction never confirmed. */
   | 'network'
   | 'unknown';
@@ -221,8 +223,18 @@ export interface BookEntry {
   /**
    * Trail fee accrued on this entry. CONFIDENTIAL: decrypted client-side for
    * this introducer only. Do not log it, do not put it in a URL.
+   *
+   * Accrued is not the same as withdrawable — see `vested`.
    */
   feeAccrued: Amount;
+  /** When this entry's fee becomes withdrawable. */
+  vestsAt: Timestamp;
+  /**
+   * Whether it has. Read this rather than comparing `vestsAt` to the browser's
+   * clock: vesting is settled on-chain, and a wrong local clock must not be
+   * able to enable a claim button the contract will reject.
+   */
+  vested: boolean;
 }
 
 export interface IntroducerBook {
@@ -230,16 +242,30 @@ export interface IntroducerBook {
   displayName: string;
   /** Share the issuer pays this introducer, in basis points. 50 = 0.50%. */
   trailFeeBps: number;
+  /**
+   * How long a fee sits before it can be withdrawn. The issuer can recover it
+   * during this window if the investor redeems early — the same mechanic as
+   * insurance commission chargeback.
+   */
+  vestingWindowDays: number;
   entries: BookEntry[];
   totals: {
     introducedCount: number;
     subscribedTotal: Amount;
-    /** CONFIDENTIAL. */
+    /** CONFIDENTIAL. Everything earned, vested or not. */
     feeAccrued: Amount;
-    /** CONFIDENTIAL. */
+    /** CONFIDENTIAL. Already withdrawn. */
     feeClaimed: Amount;
-    /** CONFIDENTIAL. What the claim button would pay out right now. */
+    /**
+     * CONFIDENTIAL. What the claim button would pay out right now:
+     * **vested minus claimed**, NOT accrued minus claimed.
+     *
+     * This definition changed when vesting was added. If you are reading old
+     * code that treats it as accrued − claimed, that code is wrong.
+     */
     feeClaimable: Amount;
+    /** CONFIDENTIAL. Accrued, not yet vested — earned but not withdrawable. */
+    feeVesting: Amount;
   };
 }
 
@@ -264,6 +290,13 @@ export interface LedgerRow {
   /** Visible to the issuer: it is the issuer's own liability. */
   feeAccrued: Amount;
   feeSettled: boolean;
+  /** When the introducer can withdraw this fee. */
+  vestsAt: Timestamp;
+  /**
+   * Whether the issuer could still recover this fee — accrued, unvested and
+   * unclaimed. The issuer's side of the vesting window.
+   */
+  recoverable: boolean;
 }
 
 export interface AttributionLedger {
@@ -277,6 +310,8 @@ export interface AttributionLedger {
     /** Accrued and not yet claimed — the number a CFO cares about. */
     outstandingFeeLiability: Amount;
     feesSettledTotal: Amount;
+    /** Of the outstanding liability, how much is still inside its window. */
+    feeVestingTotal: Amount;
   };
 }
 
