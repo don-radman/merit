@@ -161,3 +161,122 @@ Two implementations, pick when you write `claim_fee`:
 (2) is almost certainly right for a 28-hour build; (1) is the better long answer. Either
 way the client interface does not change, because it already speaks in `vested` and
 `vestsAt` rather than in mechanisms.
+
+
+## Confidential fee claim — wired to the live verifier
+
+`claim_fee` makes a cross-contract call into OpenZeppelin's deployed verifier and refuses to
+release anything unless the proof is accepted. Verified on testnet against the real verifier:
+
+| Input                  | Result                                      |
+|------------------------|---------------------------------------------|
+| Garbage 14,592 bytes   | `InvalidProof` (#9) — rejected at the gate  |
+| A real UltraHonk proof | passed the gate, then `NothingToClaim` (#6) |
+
+The second case is the one that matters: execution continued *past* the proof check and
+failed later for the right reason.
+
+Contract: `CAGT434JHKHHBVENOHNB4FX6NYUMDHTWUPJGK3VDPGATC5PBAYHKFBKU` · verifier wired in at `initialise`.
+
+### The gotcha that cost a deploy
+
+`verify_proof` takes `(circuit_type, public_inputs, proof)` — **public inputs before the
+proof**. Cross-contract calls are positional, so swapping the last two returns a clean
+`false` rather than an error, which looks exactly like an invalid proof. `claim_fee` now
+takes its arguments in the same order so the mistake cannot be made twice.
+
+`claim_circuit` is config, currently `Register` (0) because that is the circuit we have a
+working witness for. It becomes `Transfer` (2) once fee balances actually live in the
+confidential token.
+
+### What is still public
+
+Fee amounts are still plain `i128` in this contract. The proof gate is real and the verifier
+is real, but the *amounts* do not become confidential until the balances move into
+OpenZeppelin's confidential token. That is the remaining work, and the client interface does
+not change when it happens — `claimFee()` takes no proof argument, because generating one is
+the client library's job, not the UI's.
+
+## End-to-end on testnet — passing
+
+`./scripts/e2e-testnet.sh` runs the whole flow against testnet and asserts the outcome:
+
+```
+subscribed 250,000.00 TUSDC through CALDER-PR7
+investor issued 250,000.00 CSDIF units this run
+claimable = 1,250.00            (50 bps, after the vesting window)
+claim paid 1,250.00 TUSDC       (proof accepted by the deployed verifier)
+PASS
+```
+
+Deploys a fresh contract each run, so re-running it **is** the reset. Needs no Noir
+toolchain — the claim proof is a committed fixture in `contracts/testdata/`, already
+verified by the live verifier.
+
+### Two things this surfaced
+
+**The 90-day instance can never demo a claim.** `claim_fee` compares `vests_at` against real
+ledger time and there is no way to advance the clock on testnet, so a subscription made today
+is unclaimable until late January. The e2e script deploys its own instance with a 15-second
+window. Any instance used for the demo video needs a short window too — it is an argument to
+`initialise`, not a code change, but it is easy to forget and impossible to work around live.
+
+**Simulations are faster than you expect.** Twelve read-only `claimable` calls finished inside
+a 15-second window, so the first version of the poll loop reported zero and gave up while the
+logic was entirely correct. The loop is paced now.
+
+### Amounts
+
+The SACs use 7 decimals, so the script works in stroops and prints human figures. 250,000.00
+subscribed at 50 bps is exactly 1,250.00 — the same arithmetic as the UI fixtures, so the
+numbers on screen and the numbers on chain tell the same story.
+
+
+## ✅ claim_fee pays confidentially — verified on testnet
+
+Contract `CBG7RUBLJTIDEY2CQNW2OV2NRRL2LNUQ753DH7IHLHAVVDZTPFMDVQQC`. One subscription of 250,000, one claim of the 1,250 trail fee:
+
+|                                   | before         | after                          |
+|-----------------------------------|----------------|--------------------------------|
+| contract TUSDC                    | 5,250,000      | **5,248,750**                  |
+| confidential token custody        | 12,500,000,000 | **12,500,001,250**             |
+| introducer PUBLIC TUSDC           | 25,100,000,000 | **25,100,000,000 (unchanged)** |
+| introducer `receiving_commitment` | old point      | **new point**                  |
+| `claimable`                       | 1,250          | 0                              |
+
+The fee left the contract and arrived as an encrypted commitment. Nothing about the amount
+shows in the introducer's public balance.
+
+### Why deposit, and not confidential_transfer
+
+`confidential_transfer` has to be signed by the party holding the opening of the spending
+commitment, and proving is client-side — **a contract cannot generate a proof.** So the
+contract can never be the sender of a confidential transfer.
+
+`deposit` needs no proof and a contract can authorize itself, which gives a design where the
+vesting window still works:
+
+- while vesting, the fee is a public `i128` the contract holds — which is exactly what lets
+  the issuer recover it
+- at claim, it is deposited into the confidential token and **stops being public at the
+  moment it becomes the introducer's**
+- the introducer later withdraws or transfers it confidentially, proving with their own
+  opening
+
+Privacy where it matters, recoverability where it matters, and no contract-side proving.
+
+### Two things that will bite anyone repeating this
+
+**The depositing contract must be allowlisted too**, not just the recipient. The policy
+checks every fund-holding account named in the operation. Missing it gives
+`NotAuthorizedByPolicy` (3602).
+
+**`authorize_as_current_contract` is required.** The token pulls the underlying with its own
+`transfer`, one frame below ours, and a contract must pre-authorize anything it is the source
+of below its own frame. Without it: `Error(Auth, InvalidAction)`. The host error names the
+function to call, which is the only reason this was quick to fix.
+
+### Still to do
+
+`vesting_window_secs` is **0** on this deployment so the claim could be demonstrated in one
+sitting. Production is 90 days (7776000).

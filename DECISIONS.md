@@ -150,14 +150,20 @@ per fee carrying a time predicate (claimable by the earner after T, clawback-abl
 issuer before T), or vesting state held in the contract. Decide that when `claim_fee` is
 written, not before.
 
-**The tension, recorded rather than solved.** Native clawback is a *classic asset* feature.
-Our confidential token is a Soroban contract token, so native clawback does not reach
-confidential balances. That leaves confidential amounts without native recovery, or a
-classic asset with clawback and public amounts — unless OpenZeppelin's confidential contract
-exposes its own admin recovery path. Its deployment examples include a compliant token and
-an allowlist policy, so there is an admin layer; whether it covers forced recovery of a
-confidential balance is **unverified**. Do not state either way in the README until someone
-has read that contract.
+**The tension, now resolved.** Native clawback (CAP-35) is a *classic asset* feature and
+does not reach a Soroban contract token's balances — so on the face of it, confidential
+amounts and issuer recovery looked mutually exclusive.
+
+They are not. OpenZeppelin's confidential package ships a **`clawback` circuit** and a
+compliance module exposing `clawback`, `freeze`, `is_frozen` and `force_revoke_spender`.
+Clawback is `CircuitType` 100, registered on the verifier like any other circuit, and the
+compliant-token example is wired with those hooks. The issuer can therefore recover a
+*confidential* balance with a proof, rather than being forced to choose between privacy and
+recovery.
+
+This is good news for the vesting design: `recover_fee` has a real path even once fees move
+behind the confidential token. It does mean the issuer needs a `clawback` role and the
+circuit's verification key registered, which the deployed verifier already has.
 
 **The caveat worth saying before we are asked.** Real chargeback is usually *pro-rata*, not
 binary: a holding cancels at month five of twelve and the issuer recovers seven twelfths. A
