@@ -1441,10 +1441,191 @@ dl.kv dd {
 .home__foot .brand__name {
   font-size: 18px;
 }
+/* two parts, one product */
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.split__card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.split__card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.split__card > p {
+  margin: 0;
+}
+.ticks {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ticks li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14.5px;
+}
+.ticks li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 0.45em;
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(-45deg);
+}
+
+/* the sample portal: the client's colours, set explicitly, so it reads as a
+   different company's page in either theme */
+.sample {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px 32px;
+  align-items: center;
+}
+.sample__portal {
+  background: #faf8f3;
+  color: #0c1c26;
+  border: 1px solid #e2ddd1;
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.sample__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.sample__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #1c5245;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font: 700 14px/1 var(--font-client);
+}
+.sample__name {
+  font: 600 19px/1 var(--font-client);
+  color: #0c1c26;
+}
+.sample__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #40535e;
+  margin-bottom: 6px;
+}
+.sample__title {
+  font: 500 24px/1.15 var(--font-client);
+  color: #0c1c26;
+  margin-bottom: 10px;
+  text-wrap: balance;
+}
+.sample__copy {
+  color: #40535e;
+  font-size: 14.5px;
+  margin: 0 0 16px;
+  max-width: 42ch;
+}
+.sample__btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: #1c5245;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.sample__note h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.sample__note .actions {
+  margin-top: 12px;
+}
+
+/* what it is built on: the layers, top to bottom; Merit's rows carry the square */
+.stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--fg);
+}
+.stack__row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 4px 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.stack__who {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding-top: 4px;
+}
+.stack__row--merit .stack__who {
+  color: var(--fg);
+}
+.stack__row--merit .stack__who::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 1.5px;
+  background: var(--accent);
+}
+.stack__what h3 {
+  margin-bottom: 4px;
+}
+.stack__what p {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--muted);
+  max-width: 70ch;
+}
+.stack__foot {
+  margin-top: 16px;
+  max-width: 70ch;
+}
+.home .stats + p {
+  margin-top: 12px;
+}
+.home .under {
+  margin-top: 8px;
+}
+
 @media (max-width: 860px) {
   .grid-3,
   .connect__grid,
-  .steps {
+  .steps,
+  .split,
+  .sample {
+    grid-template-columns: 1fr;
+  }
+  .stack__row {
     grid-template-columns: 1fr;
   }
   .steps {

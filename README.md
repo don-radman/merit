@@ -10,7 +10,8 @@ investor to a tokenized fund. *Credit where it's due.*
 is the repository's working name and appears nowhere a person reads. `PRODUCT.name` in
 `src/lib/fixtures.ts` is the one place the name lives in code. The identity (Merit / Peak
 Signal v1.0: brandbook, tokens, master marks) is in [`docs/brand`](./docs/brand); how it is
-applied is in [`DESIGN.md`](./DESIGN.md).
+applied is in [`DESIGN.md`](./DESIGN.md). The layers, the data boundary and the answers to the
+questions a judge will ask are in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ---
 
