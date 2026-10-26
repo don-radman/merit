@@ -303,9 +303,10 @@ The stub build also runs as plain static files from any path, with no server and
 VITE_DEMO_BAR=1 VITE_HASH_ROUTING=1 VITE_PUBLIC_URL=https://example.com/merit npx vite build --base=./
 ```
 
-`VITE_HASH_ROUTING=1` puts the three routes behind a single `#token` — `#scout`, `#scout.CALDER-DO2`,
-`#issuer`, `#i.CALDER-PR7`, `#i.CALDER-PR7.phone` — `VITE_DEMO_BAR=1` keeps the demo bar in a
-production build, and `VITE_PUBLIC_URL` is the address baked into the adviser's share link.
+`VITE_HASH_ROUTING=1` puts the routes behind a single `#token` — `#scout`, `#scout.CALDER-DO2`,
+`#issuer`, `#i.CALDER-PR7`, `#i.CALDER-PR7.phone`, and `#guide` for the guided demo (talking points,
+the thing to click, and the real testnet transaction for each beat) — `VITE_DEMO_BAR=1` keeps the
+demo bar in a production build, and `VITE_PUBLIC_URL` is the address baked into the adviser's share link.
 Leave all three unset for a normal root deployment; `vercel.json` carries the SPA rewrites for that.
 
 Against the chain:
