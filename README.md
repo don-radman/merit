@@ -293,6 +293,19 @@ The UI talks only to the client in `src/lib/`. `STUB` mode returns fixture data 
 screens can be built and demoed with no contracts deployed; see
 [src/lib/README.md](./src/lib/README.md) for the swap to live testnet.
 
+### Hosted click-through demo
+
+The stub build also runs as plain static files from any path, with no server and no rewrites:
+
+```bash
+VITE_DEMO_BAR=1 VITE_HASH_ROUTING=1 VITE_PUBLIC_URL=https://example.com/merit npx vite build --base=./
+```
+
+`VITE_HASH_ROUTING=1` puts the three routes behind a single `#token` — `#scout`, `#scout.CALDER-DO2`,
+`#issuer`, `#i.CALDER-PR7`, `#i.CALDER-PR7.phone` — `VITE_DEMO_BAR=1` keeps the demo bar in a
+production build, and `VITE_PUBLIC_URL` is the address baked into the adviser's share link.
+Leave all three unset for a normal root deployment; `vercel.json` carries the SPA rewrites for that.
+
 Against the chain:
 
 ```bash

@@ -12,7 +12,10 @@
  */
 
 import { createStubClient } from '@/lib/stub.ts';
-import { createLiveClient } from '@/lib/live.ts';
+// The live client pulls in the Stellar SDK, which the stub never needs. Load
+// it only when live mode is on, so a stub build ships without the SDK chunk.
+// Top-level await: the module resolves before any screen renders.
+const live = import.meta.env.VITE_CLIENT_MODE === 'live' ? await import('@/lib/live.ts') : null;
 import { INTRODUCERS, TRAIL_FEE_BPS, rateFor } from '@/lib/fixtures.ts';
 import type { ClientConfig, IntroducerRailsClient } from '@/lib/types.ts';
 
@@ -60,7 +63,8 @@ function ownRateFor(config: ClientConfig): number {
 
 export function createClient(config: ClientConfig): IntroducerRailsClient {
   if (MODE === 'live') {
-    return createLiveClient({
+    if (!live) throw new Error('Live client was not loaded; VITE_CLIENT_MODE must be set at build time.');
+    return live.createLiveClient({
       ...config,
       contractId: CONTRACT_ID,
       // Simulation source only — never signs. Any existing account works.
@@ -90,4 +94,5 @@ export function createClient(config: ClientConfig): IntroducerRailsClient {
   return createStubClient(config);
 }
 
-export { liveMethods } from '@/lib/live.ts';
+/** Which methods read the chain. Empty in stub mode — nothing is live. */
+export const liveMethods: readonly string[] = live ? live.liveMethods : [];

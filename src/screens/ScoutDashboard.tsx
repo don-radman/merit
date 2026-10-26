@@ -7,7 +7,8 @@ import CopyButton from '@/components/CopyButton.tsx';
 import { SkeletonRows, SkeletonStats } from '@/components/Skeleton.tsx';
 import { useToast } from '@/components/Toast.tsx';
 import { FingerprintIcon, LockIcon, ShieldCheckIcon } from '@/components/icons.tsx';
-import { FUND, MODE, PRODUCT, createClient, formatUsd, linkFor, liveMethods } from '@/lib/index.ts';
+import { FUND, MODE, PRODUCT, createClient, formatUsd, liveMethods } from '@/lib/index.ts';
+import { hrefFor } from '@/route.ts';
 import type { BookEntry, ClientError, ClientErrorCode } from '@/lib/index.ts';
 import { useLiveData } from '@/lib/useLiveData.ts';
 import { formatBps, formatDate } from '@/lib/format.ts';
@@ -175,7 +176,8 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
   // offer it when the client that would honour it is the one on screen.
   const canCollect =
     MODE === 'stub' || (liveMethods as readonly string[]).includes('claimFee');
-  const link = linkFor(book.code);
+  // The link points at THIS deployment, in whichever routing mode is on.
+  const link = hrefFor(`/i/${book.code}`);
   const mask = <span className="mask" aria-label="Not on the public record">••••</span>;
 
   return (

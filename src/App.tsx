@@ -5,18 +5,25 @@ import { ToastProvider } from '@/components/Toast.tsx';
 import InvestorSubscribe from '@/screens/InvestorSubscribe.tsx';
 import ScoutDashboard from '@/screens/ScoutDashboard.tsx';
 import IssuerConsole from '@/screens/IssuerConsole.tsx';
-import { parseRoute } from '@/route.ts';
+import { currentLocation, parseRoute } from '@/route.ts';
 import type { Route } from '@/route.ts';
 
+const routeNow = (): Route => {
+  const { path, search } = currentLocation();
+  return parseRoute(path, search);
+};
+
 export default function App() {
-  const [route, setRoute] = useState<Route>(() =>
-    parseRoute(location.pathname, location.search),
-  );
+  const [route, setRoute] = useState<Route>(routeNow);
 
   useEffect(() => {
-    const onPop = () => setRoute(parseRoute(location.pathname, location.search));
-    addEventListener('popstate', onPop);
-    return () => removeEventListener('popstate', onPop);
+    const onChange = () => setRoute(routeNow());
+    addEventListener('popstate', onChange);
+    addEventListener('hashchange', onChange);
+    return () => {
+      removeEventListener('popstate', onChange);
+      removeEventListener('hashchange', onChange);
+    };
   }, []);
 
   useEffect(() => {
