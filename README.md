@@ -16,7 +16,9 @@ of Stellar we used, with proofs, in [`docs/STELLAR.md`](./docs/STELLAR.md); the 
 [`docs/GTM.md`](./docs/GTM.md).
 
 **Live:** [meritdue.com](https://www.meritdue.com) · [demo.meritdue.com](https://demo.meritdue.com)
-(sample data, with a guided walkthrough at [`/?guide=1`](https://demo.meritdue.com/?guide=1)).
+(sample data, with a guided walkthrough at [`/?guide=1`](https://demo.meritdue.com/?guide=1)) ·
+[the interactive architecture map](https://www.meritdue.com/architecture.html), every component
+citing the source lines behind it ([source and still](./docs/architecture)).
 
 ---
 
@@ -121,6 +123,11 @@ authenticator producing byte-identical payloads to a browser's). See D13–D15 i
 [DECISIONS.md](./DECISIONS.md).
 
 ## Architecture
+
+[![Merit on Stellar: how an introduction becomes a private payout](./docs/architecture/merit-architecture.png)](https://www.meritdue.com/architecture.html)
+
+*Interactive version, with the source lines behind every component:
+[meritdue.com/architecture.html](https://www.meritdue.com/architecture.html).*
 
 | Layer | Choice | Why |
 |---|---|---|

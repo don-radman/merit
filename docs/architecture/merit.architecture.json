@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Merit on Stellar: how an introduction becomes a private payout",
+    "locale": "en",
+    "output": "public/architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Yomanz/introducer-rails",
+      "provider": "github",
+      "revision": "b37bcc6d46e17c9cb6cbfc236850aa602b841e1d"
+    },
+    "views": [
+      {
+        "id": "subscribe",
+        "label": "1 · The investor subscribes",
+        "focus": ["investor", "portal", "relayer", "attribution", "assets", "passkey"],
+        "note": "One Face ID touch authorises the whole tree: USDC in, fund units out, the introduction recorded with its vesting date."
+      },
+      {
+        "id": "book",
+        "label": "2 · The adviser's book",
+        "focus": ["adviser", "meritapp", "attribution"],
+        "note": "The book is a public read of the contract. The adviser's rate is applied locally; the chain never held it."
+      },
+      {
+        "id": "settle",
+        "label": "3 · The fund pays, privately",
+        "focus": ["fundops", "settlement", "attribution", "oztoken", "verifier"],
+        "note": "settle marks the vested rows and emits ids only. The payment is a confidential transfer whose amount is absent from the ledger."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "adviser", "type": "external", "icon": "person",
+      "label": "Adviser", "sublabel": "family office · own rate only",
+      "pos": [40, 40], "size": [170, 64],
+      "sources": [
+        { "path": "src/lib/index.ts", "line": 45, "end_line": 62, "label": "a client holds one rate" }
+      ]
+    },
+    {
+      "id": "meritapp", "type": "frontend",
+      "label": "Merit surfaces", "sublabel": "src/ · book · ledger · payout",
+      "pos": [390, 40], "size": [170, 64],
+      "sources": [
+        { "path": "src/App.tsx", "line": 59, "end_line": 75, "label": "the three screens" },
+        { "path": "src/lib/live.ts", "line": 1, "end_line": 27, "label": "what is live, what is stub" },
+        { "path": "src/lib/live.ts", "line": 123, "end_line": 145, "label": "reads by RPC simulation" }
+      ]
+    },
+    {
+      "id": "passkey", "type": "security",
+      "label": "Passkey smart account", "sublabel": "__check_auth · secp256r1",
+      "pos": [1440, 40], "size": [170, 64],
+      "sources": [
+        { "path": "contracts/passkey-wallet/src/lib.rs", "line": 1, "end_line": 53, "label": "the six checks" },
+        { "path": "contracts/passkey-wallet/src/lib.rs", "line": 323, "end_line": 379, "label": "__check_auth" },
+        { "path": "site/server/relayer.mjs", "line": 146, "end_line": 168, "label": "deployed by the relayer" }
+      ]
+    },
+    {
+      "id": "investor", "type": "external", "icon": "person",
+      "label": "Investor", "sublabel": "a phone, a passkey, no seed",
+      "pos": [40, 180], "size": [170, 64],
+      "sources": [
+        { "path": "site/src/wallet/passkey.ts", "line": 120, "end_line": 165, "label": "create the passkey" },
+        { "path": "site/src/wallet/passkey.ts", "line": 173, "end_line": 209, "label": "sign the challenge" }
+      ]
+    },
+    {
+      "id": "portal", "type": "frontend",
+      "label": "Calder investor portal", "sublabel": "site/ · the fund's own brand",
+      "pos": [390, 180], "size": [170, 64],
+      "sources": [
+        { "path": "site/server/api.mjs", "line": 105, "end_line": 126, "label": "open an account" },
+        { "path": "site/server/api.mjs", "line": 200, "end_line": 217, "label": "prepare and submit" },
+        { "path": "site/server/chain.mjs", "line": 1, "end_line": 9, "label": "reads stay on the server" }
+      ]
+    },
+    {
+      "id": "relayer", "type": "backend",
+      "label": "Fee relayer", "sublabel": "pays fees · holds no passkey",
+      "pos": [740, 180], "size": [170, 64],
+      "sources": [
+        { "path": "site/server/relayer.mjs", "line": 1, "end_line": 39, "label": "payer, not custodian" },
+        { "path": "site/server/relayer.mjs", "line": 318, "end_line": 374, "label": "prepare: the challenge" },
+        { "path": "site/server/relayer.mjs", "line": 411, "end_line": 436, "label": "submit: the assertion" }
+      ]
+    },
+    {
+      "id": "attribution", "type": "backend",
+      "label": "Attribution contract", "sublabel": "subscribe · settle · recover",
+      "tag": "no rate on chain",
+      "pos": [1090, 180], "size": [170, 64],
+      "sources": [
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 1, "end_line": 21, "label": "what it refuses to know" },
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 167, "end_line": 218, "label": "subscribe" },
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 276, "end_line": 325, "label": "settle and mark_settled" }
+      ]
+    },
+    {
+      "id": "assets", "type": "external",
+      "label": "Fund assets (SACs)", "sublabel": "TUSDC in · CSDIF units out",
+      "pos": [1440, 180], "size": [170, 64],
+      "sources": [
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 28, "end_line": 38, "label": "the two SAC addresses" },
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 180, "end_line": 186, "label": "the two transfers" },
+        { "path": "site/server/config.mjs", "line": 42, "end_line": 51, "label": "deployed ids" }
+      ]
+    },
+    {
+      "id": "fundops", "type": "external", "icon": "briefcase",
+      "label": "Fund operations", "sublabel": "issuer key · operator CLI",
+      "pos": [390, 320], "size": [170, 64],
+      "sources": [
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 276, "end_line": 283, "label": "settle is issuer-only" },
+        { "path": "contracts/introducer-rails/src/lib.rs", "line": 330, "end_line": 354, "label": "recover inside the window" }
+      ]
+    },
+    {
+      "id": "settlement", "type": "backend",
+      "label": "Settlement service", "sublabel": "scripts/ · applies a private rate",
+      "pos": [740, 320], "size": [170, 64],
+      "sources": [
+        { "path": "scripts/confidential.sh", "line": 61, "end_line": 78, "label": "rate from a gitignored file" },
+        { "path": "scripts/conf-settle.mjs", "line": 1, "end_line": 22, "label": "the amount never prints" },
+        { "path": "scripts/conf-settle.mjs", "line": 45, "end_line": 83, "label": "witness for the proof" }
+      ]
+    },
+    {
+      "id": "oztoken", "type": "security",
+      "label": "Confidential fee token", "sublabel": "OpenZeppelin v0.8.0",
+      "pos": [1090, 320], "size": [170, 64],
+      "sources": [
+        { "path": "src/lib/confidential.ts", "line": 1, "end_line": 34, "label": "the eleven-field payload" },
+        { "path": "scripts/conf-settle.mjs", "line": 93, "end_line": 105, "label": "transfer data" },
+        { "path": "src/lib/onchain.ts", "line": 19, "end_line": 28, "label": "deployed ids" }
+      ]
+    },
+    {
+      "id": "verifier", "type": "security",
+      "label": "UltraHonk verifier", "sublabel": "BN254 host functions",
+      "pos": [1440, 320], "size": [170, 64],
+      "sources": [
+        { "path": "contracts/SPIKE.md", "line": 50, "end_line": 67, "label": "why we wrote no circuit" },
+        { "path": "src/lib/onchain.ts", "line": 24, "end_line": 27, "label": "verifier and auditor registry" }
+      ]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Stellar testnet · Protocol 29", "wraps": ["passkey", "attribution", "assets", "oztoken", "verifier"] },
+    { "kind": "region", "label": "The fund's own portal · Merit Connect", "wraps": ["portal", "relayer"] }
+  ],
+  "connections": [
+    { "id": "adviser-opens-book", "from": "adviser", "to": "meritapp", "label": "opens the book" },
+    { "id": "app-reads-contract", "from": "meritapp", "to": "attribution", "label": "get_book · get_ledger" },
+    { "id": "investor-link", "from": "investor", "to": "portal", "label": "adviser link · Face ID", "variant": "emphasis" },
+    { "id": "portal-relayer", "from": "portal", "to": "relayer", "label": "prepare → sign → submit", "variant": "emphasis" },
+    { "id": "relayer-subscribe", "from": "relayer", "to": "attribution", "label": "subscribe(code, amount)", "variant": "emphasis" },
+    { "id": "subscribe-transfers", "from": "attribution", "to": "assets", "label": "USDC in · units out", "variant": "emphasis" },
+    { "id": "require-auth", "from": "attribution", "to": "passkey", "label": "require_auth → __check_auth", "variant": "security" },
+    { "id": "fund-runs-payout", "from": "fundops", "to": "settlement", "label": "runs the payout" },
+    { "id": "settle", "from": "settlement", "to": "attribution", "label": "settle(code) · issuer only", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "confidential-transfer", "from": "settlement", "to": "oztoken", "label": "transfer · amount hidden", "variant": "security" },
+    { "id": "proof", "from": "oztoken", "to": "verifier", "label": "UltraHonk proof" }
+  ],
+  "cards": [
+    { "dot": "slate", "title": "What the chain shows", "items": ["Who introduced whom, by code and account", "How much each investor subscribed", "Vesting, paid and reversed, as events anyone can read"] },
+    { "dot": "rose", "title": "What stays private", "items": ["The adviser's rate: in the fund's own systems, never on chain", "The fee: computed off chain and paid by confidential transfer, amount absent from ledger and events", "Investor identity: the portal's KYC; the chain holds an account, not a name"] },
+    { "dot": "amber", "title": "Who signs what", "items": ["The investor's passkey authorises subscribe; the host verifies the WebAuthn assertion with secp256r1", "The relayer pays fees and deploys accounts; it holds no passkey, so it can authorise nothing", "The issuer signs settle and recover; vesting needs no signature at all"] },
+    { "dot": "orange", "title": "Honest limits", "items": ["The verifier accepts non-zero-knowledge UltraHonk proofs today; the amount is absent, the proof carries no privacy guarantee yet", "Confidential settlement ran by script against a separate deployment from the one the portal reads", "Compliance flags are off on the testnet issuer; the identity check is simulated", "Testnet, fictional fund, play money"] }
+  ]
+}

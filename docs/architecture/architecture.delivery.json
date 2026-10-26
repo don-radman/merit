@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ea172b54-905e-4abf-90c7-122c984e5188",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/user/introducer-rails/docs/architecture/merit.architecture.json",
+  "output": "/home/user/introducer-rails/public/architecture.html",
+  "specification": {
+    "sha256": "17e1f82c63caae77daa0094406765cc633dcfe36320181aecf23ed61551294b5",
+    "bytes": 10301
+  },
+  "artifact": {
+    "sha256": "33e834aa79cce3110d7ce2c3e2bbfddee2d5752b0aaf09e183d5f95f5ea935e6",
+    "bytes": 862510
+  }
+}

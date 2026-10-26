@@ -3,6 +3,10 @@
 The one-page version of what Merit is made of, where its pieces sit, and what we claim.
 Written for the pitch: every sentence here is something we can say out loud and point to.
 
+The interactive map of everything below, each component citing its source lines, is at
+[meritdue.com/architecture.html](https://www.meritdue.com/architecture.html)
+(source in [`docs/architecture`](./architecture)).
+
 ## In one paragraph
 
 Tokenized funds on Stellar are live and growing. The capital still reaches them the way it
