@@ -156,3 +156,28 @@ Say *Recorded on Stellar* where accurate; imply no approval, certification or sp
 - [ ] Banned-word grep on the investor and adviser screens is clean
 - [ ] Totals reconcile on screen (Earned = On its way + Paid out)
 - [ ] The mark is never below 32px with its cut, never stretched
+
+
+## Marketing site: dimensional Peak Signal
+
+The landing page (`src/screens/Home.tsx`, `home-premium.css`) extends the identity
+for an institutional audience. Graphite establishes the opening; warm bone creates
+editorial space; steel provides material depth. Citron marks an action or active
+state. Keep these colours deliberate rather than placing similar grey cards on
+similar grey backgrounds.
+
+The dimensional mountain in the hero is a marketing illustration derived from the
+master geometry. The navigation and product headers retain the flat master mark.
+Do not use dimensional treatments for financial status, figures or controls.
+
+Landing-page motion is an explicit extension of the product UI rules above:
+restrained pointer response on the hero and short transitions following a
+visitor's selection. No automatic process
+carousel, animated money, bouncing or continuous attention-seeking movement.
+Respect reduced motion, coarse pointers and keyboard access. All explanations
+must remain readable without animation.
+
+Keep the demonstration boundary visible: the fund and figures are fictional;
+stub payouts are simulations; live settlement uses a separate pipeline; the
+current non-zero-knowledge verifier does not guarantee payout-amount privacy.
+Product promises must not imply those integration steps have been completed.
