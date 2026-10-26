@@ -18,7 +18,8 @@
  * nothing but letters, digits, dots and dashes:
  *
  *   #scout · #scout.CALDER-DO2 · #issuer · #i.CALDER-PR7 · #i.CALDER-PR7.phone
- *   (no token: the front page; #i alone: the investor screen with no link)
+ *   (no token: the front page; #i alone: the investor screen with no link;
+ *    #guide: the front page with the guided demo open)
  *
  * Dev and a root deployment keep clean paths.
  */
@@ -44,6 +45,8 @@ function fromToken(token: string): { path: string; search: string } {
       return { path: '/scout', search: code ? `?code=${encodeURIComponent(code)}` : '' };
     case 'issuer':
       return { path: '/issuer', search: '' };
+    case 'guide':
+      return { path: '/', search: '?guide=1' };
     case 'i':
       return {
         path: code ? `/i/${encodeURIComponent(code)}` : '/i',
@@ -59,6 +62,7 @@ function toToken(to: string): string {
   const q = to.indexOf('?');
   const path = q === -1 ? to : to.slice(0, q);
   const params = new URLSearchParams(q === -1 ? '' : to.slice(q));
+  if (params.has('guide')) return 'guide';
   const link = /^\/i\/([^/]+)\/?$/.exec(path);
   if (link) return `i.${decodeURIComponent(link[1])}${params.has('frame') ? '.phone' : ''}`;
   if (path.startsWith('/scout') || path.startsWith('/introducer')) {

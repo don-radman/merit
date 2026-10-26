@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import DevBar from '@/components/DevBar.tsx';
+import Guide from '@/components/Guide.tsx';
 import PhoneFrame from '@/components/PhoneFrame.tsx';
 import { ToastProvider } from '@/components/Toast.tsx';
 import Home from '@/screens/Home.tsx';
@@ -14,11 +15,18 @@ const routeNow = (): Route => {
   return parseRoute(path, search);
 };
 
+const guideRequested = (): boolean => new URLSearchParams(currentLocation().search).has('guide');
+
 export default function App() {
   const [route, setRoute] = useState<Route>(routeNow);
+  const [guide, setGuide] = useState<boolean>(guideRequested);
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const onChange = () => setRoute(routeNow());
+    const onChange = () => {
+      setRoute(routeNow());
+      if (guideRequested()) setGuide(true);
+    };
     addEventListener('popstate', onChange);
     addEventListener('hashchange', onChange);
     return () => {
@@ -44,7 +52,8 @@ export default function App() {
         ))}
       {route.screen === 'scout' && <ScoutDashboard code={route.code} />}
       {route.screen === 'issuer' && <IssuerConsole />}
-      <DevBar route={route} />
+      {guide && <Guide route={route} index={step} onIndex={setStep} onClose={() => setGuide(false)} />}
+      <DevBar route={route} guide={guide} onGuide={() => setGuide((g) => !g)} />
     </ToastProvider>
   );
 }

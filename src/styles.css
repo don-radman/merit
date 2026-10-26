@@ -1637,6 +1637,149 @@ dl.kv dd {
 }
 
 /* ---------------------------------------------------------------------------
+   The guided demo: a graphite panel above the demo bar, for the presenter
+   --------------------------------------------------------------------------- */
+
+.guide {
+  position: fixed;
+  right: 16px;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 88px);
+  overflow: auto;
+  z-index: 45;
+  border-radius: var(--radius);
+  padding: 16px 18px 14px;
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14.5px;
+}
+.guide--left {
+  right: auto;
+  left: 16px;
+}
+.guide__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guide__tools {
+  display: inline-flex;
+  gap: 2px;
+}
+.guide__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.guide__title {
+  font-size: 22px;
+  line-height: 1.15;
+}
+.guide__block .eyebrow {
+  margin-bottom: 6px;
+}
+.guide__say {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.guide__say li {
+  position: relative;
+  padding-left: 14px;
+  line-height: 1.45;
+}
+.guide__say li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 1.5px;
+  background: var(--accent);
+}
+.guide__do {
+  margin: 0;
+  font-weight: 500;
+}
+.guide__levers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.guide__levers:empty {
+  display: none;
+}
+.guide__links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.guide__links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg);
+  text-decoration-color: var(--inverse-muted);
+}
+.guide__links a:hover {
+  text-decoration-color: currentColor;
+}
+.guide__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.guide__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.guide__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 1.5px;
+  background: var(--inverse-muted);
+  opacity: 0.4;
+}
+.guide__dots i.is-done {
+  opacity: 0.8;
+}
+.guide__dots i.is-on {
+  background: var(--accent);
+  opacity: 1;
+}
+@media (max-width: 760px) {
+  .guide,
+  .guide--left {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 52dvh;
+    padding: 12px 14px;
+  }
+  .guide__title {
+    font-size: 19px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Spinner, skeleton, toast
    --------------------------------------------------------------------------- */
 

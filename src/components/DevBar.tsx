@@ -36,7 +36,7 @@ const ARMABLE: ClientErrorCode[] = [
   'network',
 ];
 
-export default function DevBar({ route }: { route: Route }) {
+export default function DevBar({ route, guide = false, onGuide }: { route: Route; guide?: boolean; onGuide?: () => void }) {
   const [armed, setArmed] = useState<ClientErrorCode | ''>('');
 
   // Dev builds always; production builds only when VITE_DEMO_BAR=1, which is
@@ -64,6 +64,11 @@ export default function DevBar({ route }: { route: Route }) {
     <div className="devbar" role="toolbar" aria-label="Demo controls">
       <strong>demo</strong>
       <span className={`badge badge--${MODE}`}>{MODE}</span>
+      {onGuide && (
+        <button className={`btn btn--ghost btn--sm${guide ? ' is-active' : ''}`} onClick={onGuide} title="Step-by-step talking points and the real transactions">
+          Guide
+        </button>
+      )}
 
       <span className="devbar__group">
         <button className={`btn btn--ghost btn--sm${is('home')}`} onClick={() => navigate('/')}>
