@@ -1,0 +1,38 @@
+{
+  "name": "Merit",
+  "tagline": "Credit where it's due.",
+  "version": "1.0",
+  "direction": "Peak Signal",
+  "palette": {
+    "graphite": "#202626",
+    "bone": "#F4F2E9",
+    "steel": "#B8BFC0",
+    "citron": "#D7F45B",
+    "olive": "#697557",
+    "stone": "#DADDD3"
+  },
+  "fonts": {
+    "display": "Manrope",
+    "body": "Inter",
+    "reference": "IBM Plex Mono"
+  },
+  "logo": {
+    "visible_width_units": 82,
+    "visible_height_units": 80,
+    "clearspace": "H/4",
+    "minimum_full_px": 32,
+    "micro_px": [
+      16,
+      31
+    ],
+    "source": "assets/merit-mark-graphite.svg"
+  },
+  "status_labels": [
+    "Vesting",
+    "Payable",
+    "Paid",
+    "Reversed"
+  ],
+  "money": "US$ prefix; 2 decimals; tabular figures",
+  "claims": "Verify against release; no blanket privacy or production-readiness claims"
+}

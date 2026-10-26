@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import DevBar from '@/components/DevBar.tsx';
 import PhoneFrame from '@/components/PhoneFrame.tsx';
 import { ToastProvider } from '@/components/Toast.tsx';
+import Home from '@/screens/Home.tsx';
 import InvestorSubscribe from '@/screens/InvestorSubscribe.tsx';
 import ScoutDashboard from '@/screens/ScoutDashboard.tsx';
 import IssuerConsole from '@/screens/IssuerConsole.tsx';
@@ -32,6 +33,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+      {route.screen === 'home' && <Home />}
       {route.screen === 'investor' &&
         (route.phone ? (
           <PhoneFrame>

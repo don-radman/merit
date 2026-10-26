@@ -1,29 +1,67 @@
 /* ===========================================================================
-   Merit — one stylesheet, three screens.
+   Merit — one stylesheet, four screens.
 
-   Posture: a good fund administrator, not a crypto startup. Calm surfaces,
-   one deep accent, numbers that line up, and motion spent on exactly two
-   moments: a row arriving on the book, and a fee being paid.
+   Identity: Merit / Peak Signal v1.0 (docs/brand). Steel first, citron as a
+   signal. Graphite on bone by default; bone and steel on graphite in the dark.
+   Calm surfaces, hairline dividers, exact figures, and motion spent on exactly
+   two moments: a row arriving on the book, and a fee being paid.
 
-   Type: IBM Plex Serif for display (the voice of a statement), Plex Sans for
-   everything you read, Plex Mono for codes and references. Self-hosted below;
-   falls back to the system stack while they load.
+   Type: Manrope for headlines, Inter for everything you read (amounts in Inter
+   600 with tabular lining figures), IBM Plex Mono for references and codes.
+   Self-hosted below; falls back to the system stack while they load.
+
+   Brand hierarchy: the client's brand in investor flows (.shell--fund scopes
+   Calder's tokens), Merit in adviser and fund operations.
 
    Audience is new to web3. Nothing here should look like a wallet.
    =========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   Fonts — self-hosted latin woff2 in public/fonts, so the demo does not depend
-   on the venue Wi-Fi. Sans 400/500/600 + italic, Serif 500/600, Mono 400/500.
+   Fonts — self-hosted latin woff2 in public/fonts (licences alongside).
+   Inter 400/500/600, Manrope 700/800, Plex Mono 400/500.
    --------------------------------------------------------------------------- */
 
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/inter-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/inter-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/manrope-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../fonts/manrope-800.woff2') format('woff2');
+}
 @font-face {
   font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
   src: url('../fonts/ibm-plex-mono-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'IBM Plex Mono';
@@ -31,111 +69,85 @@
   font-weight: 500;
   font-display: swap;
   src: url('../fonts/ibm-plex-mono-500.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-sans-400-italic.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-sans-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-sans-500.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-sans-600.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'IBM Plex Serif';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-serif-500.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: 'IBM Plex Serif';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('../fonts/ibm-plex-serif-600.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+
+/* ---------------------------------------------------------------------------
+   Tokens. Brand primitives first (never used directly by components), then
+   the semantic set every rule below reads from.
+   --------------------------------------------------------------------------- */
 
 :root {
+  /* Merit / Peak Signal primitives */
+  --merit-graphite: #202626;
+  --merit-bone: #f4f2e9;
+  --merit-steel: #b8bfc0;
+  --merit-citron: #d7f45b;
+  --merit-olive: #697557;
+  --merit-stone: #daddd3;
+
   /* surfaces */
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --surface-2: #eceff3;
-  --surface-3: #e2e6ec;
-  --line: rgba(20, 29, 45, 0.1);
-  --line-strong: rgba(20, 29, 45, 0.18);
-  /* form controls: WCAG 1.4.11 wants a 3:1 boundary, which the hairlines above are not */
-  --line-input: rgba(20, 29, 45, 0.46);
+  --bg: var(--merit-bone);
+  --surface: #fcfbf7;
+  --surface-2: #ecede6;
+  --surface-3: var(--merit-stone);
+  --line: rgba(32, 38, 38, 0.1);
+  --line-strong: rgba(32, 38, 38, 0.18);
+  /* essential control borders: the brandbook's #748080, a 3:1 boundary on bone */
+  --line-input: #748080;
 
   /* ink */
-  --fg: #141d2d;
-  --fg-2: #2b3648;
-  --muted: #5b6678;
-  --faint: #8a94a6;
+  --fg: var(--merit-graphite);
+  --fg-2: #3b4343;
+  --muted: #5e6868;
+  --faint: #8b9494;
 
-  /* the one accent: harbour teal */
-  --accent: #0d5f66;
-  --accent-hover: #0a4f55;
-  --accent-soft: #dceef0;
-  --accent-fg: #ffffff;
+  /* the accent: citron is a FILL with graphite on it, never small text on bone */
+  --accent: var(--merit-citron);
+  --accent-hover: #c9e84c;
+  --accent-soft: #eef7c2;
+  --accent-fg: var(--merit-graphite);
+  /* an accent you may set large text in (olive on bone is 4.37:1, large text only) */
+  --accent-ink: var(--merit-olive);
+  --focus: var(--merit-graphite);
 
-  /* status */
-  --ok: #15803d;
-  --ok-soft: #dcf5e3;
-  --warn: #9a6700;
-  --warn-soft: #fbf0cf;
-  --err: #b42318;
-  --err-soft: #fde7e4;
-  --neutral: #667085;
-  --neutral-soft: #eef0f3;
+  /* the one emphasised (graphite) surface a screen may use */
+  --inverse-bg: var(--merit-graphite);
+  --inverse-surface: #2b3131;
+  --inverse-fg: var(--merit-bone);
+  --inverse-muted: var(--merit-steel);
+  --inverse-line: rgba(244, 242, 233, 0.14);
 
-  /* state pills */
-  --vesting: var(--warn);
-  --vesting-soft: var(--warn-soft);
-  --ready: var(--accent);
-  --ready-soft: var(--accent-soft);
-  --paid: var(--ok);
-  --paid-soft: var(--ok-soft);
-  --reversed: var(--neutral);
-  --reversed-soft: var(--neutral-soft);
+  /* status, semantic (brandbook p.19) */
+  --vesting: #805600;
+  --vesting-soft: #fff2cc;
+  --ready: #202626;
+  --ready-soft: #d7f45b;
+  --paid: #20563b;
+  --paid-soft: #e5f2e9;
+  --reversed: #5e6868;
+  --reversed-soft: #ecefea;
+  --err: #9d2f25;
+  --err-soft: #fdece8;
+  --ok: var(--paid);
+  --ok-soft: var(--paid-soft);
+  --warn: var(--vesting);
+  --warn-soft: var(--vesting-soft);
+  --neutral: var(--reversed);
+  --neutral-soft: var(--reversed-soft);
 
   /* type */
-  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* the fictional client's own voice, so Calder never looks like Merit */
+  --font-client: Georgia, 'Times New Roman', serif;
 
-  /* shape */
+  /* shape: 6px controls, 10px cards, hairlines not boxes */
   --radius-s: 6px;
   --radius: 10px;
-  --radius-l: 14px;
-  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 1px rgba(16, 24, 40, 0.03);
-  --shadow-2: 0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 30px -12px rgba(16, 24, 40, 0.14);
+  --radius-l: 10px;
+  --shadow-1: 0 1px 0 rgba(32, 38, 38, 0.04);
+  --shadow-2: 0 1px 2px rgba(32, 38, 38, 0.08), 0 12px 32px -12px rgba(32, 38, 38, 0.22);
 
   /* motion */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -146,72 +158,124 @@
   color-scheme: light;
 }
 
-/* Dark: the viewer's OS setting, unless the host pinned light; and the host's explicit dark choice. */
+/* Dark: graphite canvas, bone and steel text, citron as the signal.
+   The viewer's OS setting unless the host pinned light; and the host's explicit dark choice. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0e1218;
-    --surface: #151b24;
-    --surface-2: #1b2330;
-    --surface-3: #232d3c;
-    --line: rgba(226, 232, 240, 0.09);
-    --line-strong: rgba(226, 232, 240, 0.16);
-    --line-input: rgba(226, 232, 240, 0.42);
+    --bg: #202626;
+    --surface: #2a3030;
+    --surface-2: #333a3a;
+    --surface-3: #3d4545;
+    --line: rgba(244, 242, 233, 0.1);
+    --line-strong: rgba(244, 242, 233, 0.18);
+    --line-input: #8a9394;
 
-    --fg: #e8edf4;
-    --fg-2: #cbd3de;
-    --muted: #96a2b4;
-    --faint: #6b7686;
+    --fg: #f4f2e9;
+    --fg-2: #daddd3;
+    --muted: #b8bfc0;
+    --faint: #7e8787;
 
-    --accent: #5fc2c9;
-    --accent-hover: #7bd0d6;
-    --accent-soft: rgba(95, 194, 201, 0.14);
-    --accent-fg: #0b1a1c;
+    --accent: #d7f45b;
+    --accent-hover: #e2f87a;
+    --accent-soft: rgba(215, 244, 91, 0.14);
+    --accent-fg: #202626;
+    --accent-ink: #d7f45b;
+    --focus: #d7f45b;
 
-    --ok: #4ade80;
-    --ok-soft: rgba(74, 222, 128, 0.14);
-    --warn: #e2b53e;
-    --warn-soft: rgba(226, 181, 62, 0.14);
-    --err: #f28b82;
-    --err-soft: rgba(242, 139, 130, 0.14);
-    --neutral: #9aa4b2;
-    --neutral-soft: rgba(154, 164, 178, 0.14);
+    --inverse-bg: #2e3535;
+    --inverse-surface: #3a4242;
+    --inverse-fg: #f4f2e9;
+    --inverse-muted: #b8bfc0;
+    --inverse-line: rgba(244, 242, 233, 0.14);
 
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --vesting: #f0c75e;
+    --vesting-soft: rgba(240, 199, 94, 0.14);
+    --ready: #d7f45b;
+    --ready-soft: rgba(215, 244, 91, 0.14);
+    --paid: #8fd9b0;
+    --paid-soft: rgba(143, 217, 176, 0.14);
+    --reversed: #b8bfc0;
+    --reversed-soft: rgba(184, 191, 192, 0.12);
+    --err: #f2a49d;
+    --err-soft: rgba(242, 164, 157, 0.14);
+
+    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.2);
     --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-    --bg: #0e1218;
-    --surface: #151b24;
-    --surface-2: #1b2330;
-    --surface-3: #232d3c;
-    --line: rgba(226, 232, 240, 0.09);
-    --line-strong: rgba(226, 232, 240, 0.16);
-    --line-input: rgba(226, 232, 240, 0.42);
+  --bg: #202626;
+  --surface: #2a3030;
+  --surface-2: #333a3a;
+  --surface-3: #3d4545;
+  --line: rgba(244, 242, 233, 0.1);
+  --line-strong: rgba(244, 242, 233, 0.18);
+  --line-input: #8a9394;
 
-    --fg: #e8edf4;
-    --fg-2: #cbd3de;
-    --muted: #96a2b4;
-    --faint: #6b7686;
+  --fg: #f4f2e9;
+  --fg-2: #daddd3;
+  --muted: #b8bfc0;
+  --faint: #7e8787;
 
-    --accent: #5fc2c9;
-    --accent-hover: #7bd0d6;
-    --accent-soft: rgba(95, 194, 201, 0.14);
-    --accent-fg: #0b1a1c;
+  --accent: #d7f45b;
+  --accent-hover: #e2f87a;
+  --accent-soft: rgba(215, 244, 91, 0.14);
+  --accent-fg: #202626;
+  --accent-ink: #d7f45b;
+  --focus: #d7f45b;
 
-    --ok: #4ade80;
-    --ok-soft: rgba(74, 222, 128, 0.14);
-    --warn: #e2b53e;
-    --warn-soft: rgba(226, 181, 62, 0.14);
-    --err: #f28b82;
-    --err-soft: rgba(242, 139, 130, 0.14);
-    --neutral: #9aa4b2;
-    --neutral-soft: rgba(154, 164, 178, 0.14);
+  --inverse-bg: #2e3535;
+  --inverse-surface: #3a4242;
+  --inverse-fg: #f4f2e9;
+  --inverse-muted: #b8bfc0;
+  --inverse-line: rgba(244, 242, 233, 0.14);
 
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
-    color-scheme: dark;
+  --vesting: #f0c75e;
+  --vesting-soft: rgba(240, 199, 94, 0.14);
+  --ready: #d7f45b;
+  --ready-soft: rgba(215, 244, 91, 0.14);
+  --paid: #8fd9b0;
+  --paid-soft: rgba(143, 217, 176, 0.14);
+  --reversed: #b8bfc0;
+  --reversed-soft: rgba(184, 191, 192, 0.12);
+  --err: #f2a49d;
+  --err-soft: rgba(242, 164, 157, 0.14);
+
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.2);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -14px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+/* The client's brand in the investor flow. Calder is fictional; its tokens
+   are Lewis's portal palette (deep green, serif), so the investor sees the
+   fund they already trust and never has to learn our name. */
+.shell--fund {
+  --accent: #1c5245;
+  --accent-hover: #11352d;
+  --accent-soft: #eaf1ee;
+  --accent-fg: #ffffff;
+  --accent-ink: #1c5245;
+  --focus: #1c5245;
+  --font-display: var(--font-client);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .shell--fund {
+    --accent: #7cc4ad;
+    --accent-hover: #93d1be;
+    --accent-soft: rgba(124, 196, 173, 0.16);
+    --accent-fg: #0c1c26;
+    --accent-ink: #7cc4ad;
+    --focus: #7cc4ad;
+  }
+}
+:root[data-theme='dark'] .shell--fund {
+  --accent: #7cc4ad;
+  --accent-hover: #93d1be;
+  --accent-soft: rgba(124, 196, 173, 0.16);
+  --accent-fg: #0c1c26;
+  --accent-ink: #7cc4ad;
+  --focus: #7cc4ad;
 }
 
 /* ---------------------------------------------------------------------------
@@ -232,33 +296,45 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 15.5px/1.55 var(--font-body);
+  font: 16px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'cv05' 1;
 }
 
 h1,
 h2,
 h3 {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.012em;
   text-wrap: balance;
   color: var(--fg);
 }
 h1 {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  font-size: clamp(26px, 3.2vw, 32px);
   line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 h2 {
-  font-size: 18px;
-  line-height: 1.3;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 h3 {
   font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.shell--fund h1 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.shell--fund h2 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 18px;
 }
 p {
   margin: 0 0 10px;
@@ -268,6 +344,11 @@ b,
 strong {
   font-weight: 600;
 }
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
 .muted {
   color: var(--muted);
 }
@@ -275,8 +356,10 @@ strong {
   font-size: 13.5px;
 }
 .tnum,
-.num {
+.num,
+.money {
   font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0;
 }
 .num {
   text-align: right;
@@ -288,11 +371,14 @@ strong {
 .nowrap {
   white-space: nowrap;
 }
+/* references and section labels: Plex Mono, small, spaced */
 .eyebrow {
+  font-family: var(--font-mono);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.4;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   margin-bottom: 8px;
 }
@@ -301,8 +387,9 @@ strong {
   vertical-align: -0.15em;
 }
 
+/* keyboard focus: 2px graphite ring on light, citron on dark, 2px offset */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: var(--radius-s);
 }
@@ -325,27 +412,56 @@ strong {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px clamp(16px, 4vw, 32px);
+  padding: 12px clamp(16px, 4vw, 32px);
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 85%, transparent);
-  backdrop-filter: saturate(1.2) blur(8px);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.1) blur(8px);
   position: sticky;
   top: 0;
   z-index: 20;
 }
+
+/* The mark: full snowcap at 32px and above, micro below. Clear space is H/4,
+   which the 8px gap and header padding provide. Never stretched: the SVG is
+   sized from its visible 82x80 bounds. */
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  gap: 8px;
+  color: var(--fg);
+  text-decoration: none;
 }
-.brand__mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--fg)));
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+.mark {
+  display: block;
+  flex: none;
+  color: inherit;
+}
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  transform: translateY(1px);
+}
+.brand--fund {
+  gap: 10px;
+}
+.brand--fund .brand__name {
+  font-family: var(--font-client);
+  font-weight: 600;
+  font-size: 21px;
+  letter-spacing: 0;
+}
+.brand__mark--fund {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-s);
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: grid;
+  place-items: center;
+  font: 700 15px/1 var(--font-client);
 }
 .shell__viewer {
   display: inline-flex;
@@ -356,6 +472,12 @@ strong {
 }
 .shell__sep {
   color: var(--faint);
+}
+/* on a phone the viewer's name is already the page title; keep the header to the brand */
+@media (max-width: 480px) {
+  .shell__viewer {
+    display: none;
+  }
 }
 
 .page {
@@ -393,15 +515,14 @@ strong {
 }
 
 /* ---------------------------------------------------------------------------
-   Cards
+   Cards: a hairline, not a box. One emphasised (inverse) card per screen.
    --------------------------------------------------------------------------- */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-l);
+  border-radius: var(--radius);
   padding: 22px 24px;
-  box-shadow: var(--shadow-1);
 }
 .card + .card,
 .stats + .card,
@@ -413,9 +534,27 @@ strong {
   padding: 0;
   overflow: hidden;
 }
-.card--accent {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 55%, var(--surface)), var(--surface) 70%);
+.card--accent,
+.card--inverse {
+  --fg: var(--inverse-fg);
+  --fg-2: var(--inverse-fg);
+  --muted: var(--inverse-muted);
+  --faint: var(--inverse-muted);
+  --line: var(--inverse-line);
+  --line-strong: var(--inverse-line);
+  --surface: var(--inverse-surface);
+  --surface-2: var(--inverse-surface);
+  --focus: var(--merit-citron);
+  --accent: var(--merit-citron);
+  --accent-hover: #e2f87a;
+  --accent-fg: var(--merit-graphite);
+  --accent-soft: rgba(215, 244, 91, 0.16);
+  --accent-ink: var(--merit-citron);
+  --err-soft: rgba(242, 164, 157, 0.16);
+  --err: #f2a49d;
+  background: var(--inverse-bg);
+  color: var(--inverse-fg);
+  border-color: transparent;
 }
 .card__head {
   display: flex;
@@ -428,6 +567,15 @@ strong {
 .card__foot {
   padding: 10px 24px 16px;
   margin: 0;
+}
+
+/* the brand's short citron rule: one per composition, under a headline */
+.rule {
+  width: 48px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 20px 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -464,11 +612,22 @@ strong {
   flex-direction: column;
   gap: 6px;
 }
+/* the focal tile takes the citron rule, not a citron fill */
 .stat--accent {
-  background: var(--accent-soft);
+  position: relative;
+}
+.stat--accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 2px 2px;
 }
 .stat--accent .stat__value {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .stat--quiet {
   background: transparent;
@@ -488,9 +647,10 @@ strong {
 .stat__value {
   font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.1;
   color: var(--fg);
+  font-variant-numeric: tabular-nums lining-nums;
   transition: color var(--dur) var(--ease-out);
 }
 .stat__hint {
@@ -524,8 +684,9 @@ strong {
   min-height: 0;
   border-top: 0;
   background: var(--surface-2);
-  font-size: 12px;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -561,7 +722,7 @@ strong {
   color: var(--muted);
 }
 
-/* arrival: a new row eases in from slightly above, staggered */
+/* arrival: a new row eases in from 4px above, staggered */
 @keyframes row-in {
   from {
     opacity: 0;
@@ -577,7 +738,7 @@ strong {
   animation-delay: calc(var(--i, 0) * 45ms);
 }
 
-/* the public view: fees become dots, and the whole list cools a shade */
+/* the public view: fees become dots; the layout and row order do not move */
 .mask {
   display: inline-block;
   letter-spacing: 0.12em;
@@ -636,18 +797,19 @@ strong {
 }
 
 /* ---------------------------------------------------------------------------
-   Status pills
+   Status: always a word and a distinct shape. Vesting: clock. Payable: square.
+   Paid: check. Reversed: undo, and the amount struck through.
    --------------------------------------------------------------------------- */
 
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px 4px 8px;
-  border-radius: 999px;
-  font-size: 13px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--radius-s);
+  font-size: 12.5px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.3;
   white-space: nowrap;
   transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
 }
@@ -663,9 +825,8 @@ strong {
 .pill__dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: 1.5px;
   background: currentColor;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
 }
 .pill--vesting {
   color: var(--vesting);
@@ -685,12 +846,15 @@ strong {
 }
 
 /* ---------------------------------------------------------------------------
-   Buttons
+   Buttons: one primary action per view, in the accent fill
    --------------------------------------------------------------------------- */
 
 button,
 .btn {
   font: inherit;
+}
+a.btn {
+  text-decoration: none;
 }
 .btn,
 button:not([class]) {
@@ -700,7 +864,7 @@ button:not([class]) {
   gap: 8px;
   min-height: 42px;
   padding: 0 18px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-s);
   border: 1px solid transparent;
   background: var(--accent);
   color: var(--accent-fg);
@@ -776,14 +940,14 @@ select {
   color: var(--fg);
   background: var(--surface);
   border: 1px solid var(--line-input);
-  border-radius: var(--radius);
+  border-radius: var(--radius-s);
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 input:focus-visible,
 select:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
 }
 
 /* amount input with a currency affix */
@@ -797,15 +961,16 @@ select:focus-visible {
   padding: 0 12px;
   border: 1px solid var(--line-input);
   border-right: 0;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: var(--radius-s) 0 0 var(--radius-s);
   background: var(--surface-2);
   color: var(--muted);
   font-weight: 600;
 }
 .amount input {
-  border-radius: 0 var(--radius) var(--radius) 0;
-  font-variant-numeric: tabular-nums;
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  font-variant-numeric: tabular-nums lining-nums;
   font-size: 18px;
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------------------
@@ -843,7 +1008,7 @@ select:focus-visible {
   padding: 3px;
   gap: 2px;
   background: var(--surface-2);
-  border-radius: var(--radius);
+  border-radius: var(--radius-s);
 }
 .seg__btn {
   border: 0;
@@ -852,7 +1017,7 @@ select:focus-visible {
   font-size: 13.5px;
   font-weight: 500;
   padding: 7px 12px;
-  border-radius: calc(var(--radius) - 3px);
+  border-radius: calc(var(--radius-s) - 2px);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
@@ -886,11 +1051,11 @@ select:focus-visible {
 .audit__icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   display: grid;
   place-items: center;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
   align-self: start;
 }
 .setup__body p,
@@ -937,7 +1102,7 @@ select:focus-visible {
 .audit__verdict {
   font-weight: 600;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-s);
   background: var(--neutral-soft);
   color: var(--neutral);
 }
@@ -964,10 +1129,10 @@ select:focus-visible {
    --------------------------------------------------------------------------- */
 
 .banner {
-  border-radius: var(--radius);
+  border-radius: var(--radius-s);
   padding: 12px 14px;
   margin: 0 0 16px;
-  border: 1px solid;
+  border: 1px solid transparent;
   font-size: 14.5px;
 }
 .card--flush .banner {
@@ -987,8 +1152,15 @@ select:focus-visible {
   border-color: color-mix(in srgb, var(--ok) 35%, transparent);
 }
 .banner--info {
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.banner--info strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
 }
 .setup .banner,
 .collect .banner {
@@ -1076,7 +1248,7 @@ dl.kv dt {
 dl.kv dd {
   margin: 0;
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .statement {
@@ -1092,13 +1264,195 @@ dl.kv dd {
   border-bottom: 0;
 }
 
+/* money is Inter 600 with tabular lining figures, no letter spacing */
 .hero-figure {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 36px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
   margin: 2px 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Front page: Merit introduces itself. One message per section.
+   --------------------------------------------------------------------------- */
+
+.home {
+  max-width: 1040px;
+}
+.home__hero {
+  padding: 40px 0 44px;
+  max-width: 780px;
+}
+.home__hero h1 {
+  font-size: clamp(38px, 6vw, 64px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+.home__lede {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  max-width: 58ch;
+}
+.home__cta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+.home section {
+  padding: 40px 0;
+  border-top: 1px solid var(--line);
+}
+.home section > h2 {
+  font-size: clamp(22px, 2.6vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.home section > .muted {
+  max-width: 62ch;
+  margin-bottom: 24px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.grid-3 > .card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.grid-3 > .card p {
+  flex: 1;
+}
+.grid-3 > .card .actions {
+  margin-top: 8px;
+}
+.card__n {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent-ink);
+  letter-spacing: 0.06em;
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+.steps li {
+  border-top: 2px solid var(--fg);
+  padding-top: 14px;
+}
+.steps .card__n {
+  display: block;
+  margin-bottom: 8px;
+}
+.steps h3 {
+  margin-bottom: 6px;
+}
+.steps p {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin: 0;
+}
+.card--inverse.connect {
+  padding: 32px clamp(20px, 4vw, 40px);
+}
+.connect h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  max-width: 24ch;
+  margin-bottom: 12px;
+}
+.connect > p {
+  max-width: 62ch;
+  margin: 0;
+}
+.connect__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.connect__grid h3 {
+  margin-bottom: 6px;
+}
+.connect__grid p {
+  font-size: 14.5px;
+  margin: 0;
+  color: var(--muted);
+}
+.under {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+}
+.under li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.under__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--fg);
+  display: grid;
+  place-items: center;
+}
+.under h3 {
+  margin-bottom: 4px;
+}
+.under p {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin: 0;
+}
+.home__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 24px 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.home__foot .brand__name {
+  font-size: 18px;
+}
+@media (max-width: 860px) {
+  .grid-3,
+  .connect__grid,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .steps {
+    gap: 16px;
+  }
+  .under {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1155,8 +1509,9 @@ dl.kv dd {
   align-items: flex-start;
   padding: 12px 14px;
   border-radius: var(--radius);
-  background: var(--fg);
-  color: var(--bg);
+  background: var(--inverse-bg);
+  color: var(--inverse-fg);
+  border: 1px solid var(--inverse-line);
   box-shadow: var(--shadow-2);
   animation: toast-in var(--dur) var(--ease-out) both;
 }
@@ -1164,7 +1519,7 @@ dl.kv dd {
   margin-top: 2px;
 }
 .toast--ok .icon {
-  color: #7ee0b0;
+  color: var(--merit-citron);
 }
 .toast__title {
   font-weight: 600;
@@ -1254,6 +1609,8 @@ dl.kv dd {
   z-index: 50;
 }
 .devbar strong {
+  font-family: var(--font-mono);
+  font-weight: 500;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1280,8 +1637,9 @@ dl.kv dd {
 }
 .badge {
   padding: 2px 7px;
-  border-radius: 999px;
-  font-weight: 700;
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-weight: 500;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1296,7 +1654,7 @@ dl.kv dd {
 }
 
 /* ---------------------------------------------------------------------------
-   Motion: respect the preference
+   Motion: respect the preference. No movement, no staggering.
    --------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {

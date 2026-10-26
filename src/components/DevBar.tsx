@@ -66,6 +66,9 @@ export default function DevBar({ route }: { route: Route }) {
       <span className={`badge badge--${MODE}`}>{MODE}</span>
 
       <span className="devbar__group">
+        <button className={`btn btn--ghost btn--sm${is('home')}`} onClick={() => navigate('/')}>
+          Home
+        </button>
         <button className={`btn btn--ghost btn--sm${is('investor')}`} onClick={() => navigate('/i/CALDER-PR7')}>
           Investor
         </button>

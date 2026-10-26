@@ -1,15 +1,16 @@
-# Introducer Rails
+# Merit
 
-Confidential, onchain attribution and fee payouts for whoever brings a qualified investor
-to a tokenized fund.
+Confidential, onchain attribution and placement-fee payouts for whoever brings a qualified
+investor to a tokenized fund. *Credit where it's due.*
 
 **HackMeridian 2026** · Testnet only · fictional fund · play money
 **Tracks:** Stellar Unlocked · Stellar Composed
 
-On screen the product is called **Merit** — *credit where it's due*. Value earned through
-action; "on the merits" in legal and financial use; warm in everyday speech. *Introduced
-via Merit.* The repo keeps its working name; `PRODUCT.name` in `src/lib/fixtures.ts` is
-the one place the brand lives.
+**Merit** is the product name on every screen and in every document; *Introducer Rails*
+is the repository's working name and appears nowhere a person reads. `PRODUCT.name` in
+`src/lib/fixtures.ts` is the one place the name lives in code. The identity (Merit / Peak
+Signal v1.0: brandbook, tokens, master marks) is in [`docs/brand`](./docs/brand); how it is
+applied is in [`DESIGN.md`](./DESIGN.md).
 
 ---
 

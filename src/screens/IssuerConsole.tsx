@@ -81,7 +81,7 @@ export default function IssuerConsole() {
 
   if (ledger.loading && !ledger.data) {
     return (
-      <Shell wide brand="fund" viewer={viewer}>
+      <Shell wide viewer={viewer}>
         <div className="page-head">
           <div>
             <div className="eyebrow">Fund</div>
@@ -98,7 +98,7 @@ export default function IssuerConsole() {
 
   if (ledger.error && !ledger.data) {
     return (
-      <Shell wide brand="fund" viewer={viewer}>
+      <Shell wide viewer={viewer}>
         <h1>Attribution ledger</h1>
         <div className="banner banner--err" role="alert">
           <strong>We could not load the ledger</strong>
@@ -118,7 +118,7 @@ export default function IssuerConsole() {
   const readyScouts = new Set(readyRows.map((r) => r.introducerCode)).size;
 
   return (
-    <Shell wide brand="fund" viewer={viewer}>
+    <Shell wide viewer={viewer}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Fund</div>

@@ -1,0 +1,27 @@
+/* Merit / Peak Signal / v1.0 */
+:root {
+--merit-graphite: #202626;
+--merit-bone:     #F4F2E9;
+--merit-steel:    #B8BFC0;
+--merit-citron:   #D7F45B;
+--merit-olive:    #697557;
+--merit-stone:    #DADDD3;
+--text-muted:     #5E6868;
+--border-control:#748080;
+--radius-control: 6px;
+--radius-card:    10px;
+--font-display: "Manrope", sans-serif;
+--font-body: "Inter", sans-serif;
+--font-reference: "IBM Plex Mono", monospace;
+--status-vesting: #805600;
+--status-vesting-bg: #FFF2CC;
+--status-payable: #202626;
+--status-payable-bg: #D7F45B;
+--status-paid: #20563B;
+--status-paid-bg: #E5F2E9;
+--status-reversed: #5E6868;
+--status-reversed-bg: #ECEFEA;
+--status-error: #9D2F25;
+--status-error-bg: #FDECE8;
+}
+.money { font-variant-numeric: tabular-nums lining-nums; }
