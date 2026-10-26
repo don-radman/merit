@@ -1,0 +1,11 @@
+# Merit · HackMeridian 2026 · https://www.meritdue.com
+# One deployment serves www.meritdue.com (the product page) and demo.meritdue.com (the demo).
+# Everything is public: testnet only, a fictional fund, sample data.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://www.meritdue.com/sitemap.xml
+
+# For language models and assessment tools: a curated map of the project
+# https://www.meritdue.com/llms.txt

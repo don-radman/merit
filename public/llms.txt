@@ -1,0 +1,84 @@
+# Merit
+
+> Confidential on-chain attribution and private placement-fee payouts for whoever brings a qualified investor to a tokenized fund on Stellar. Credit where it's due. A HackMeridian 2026 entry (Lisbon, October 2026), submitted to the Stellar Composed and Stellar Unlocked tracks. Testnet only, a fictional fund (Calder Asset Management), play money.
+
+Merit records an introduction on the Stellar network the moment the introduced investor subscribes, vests the placement fee for the fund's window, pays it in a transfer whose amount is hidden, and keeps every adviser's rate between that adviser and the fund. The attribution contract stores no rate and no fee. Merit Connect is the integration seam: the two calls a fund's existing investor portal makes to use it (resolve a code, attach the introduction to a subscription), so the fund keeps its portal, its KYC and its custody.
+
+One Vercel deployment serves two hosts. www.meritdue.com is the product page and the architecture map. demo.meritdue.com is the click-through demo on sample data in the browser; the guided walkthrough links each beat to a real testnet transaction. The live investor portal with real passkey accounts and real testnet subscriptions runs locally (the `site/` directory of the repository) and is shown in the demo video.
+
+## Start here
+
+- [Product page](https://www.meritdue.com/): what Merit is, Merit versus Merit Connect, the composable layers, a sample fund portal in a different brand.
+- [Guided demo](https://demo.meritdue.com/?guide=1): eleven steps with talking points, the thing to click, and the real testnet transaction behind each beat.
+- [Interactive architecture map](https://www.meritdue.com/architecture.html): twelve components, each citing the source lines behind it at a pinned commit; three guided views (subscribe, the adviser's book, the private payout).
+- [Repository](https://github.com/don-radman/merit): contracts, the Merit app, the Calder portal, scripts, docs. Public.
+
+## Demo screens
+
+- [Adviser's book](https://demo.meritdue.com/scout): introductions with Vesting, Payable, Paid and Reversed states; "What the world sees" hides the fee and the rate.
+- [Fund console](https://demo.meritdue.com/issuer): the attribution ledger and the payout run.
+- [Investor flow](https://demo.meritdue.com/i/CALDER-PR7): the link an adviser shares; the investor lands in the fund's own brand with the introduction attached. Add `?frame=phone` for a phone frame.
+- [Second adviser's book](https://demo.meritdue.com/scout?code=CALDER-DO2): a different adviser on different terms; neither can see the other's rate.
+
+## Documentation
+
+- [README](https://github.com/don-radman/merit/blob/main/README.md): the problem, what it does, the three screens, what is confidential and what we do not claim, how to verify it.
+- [Architecture](https://github.com/don-radman/merit/blob/main/docs/ARCHITECTURE.md): the layers, who owns each, where the data lives, the four flows and who signs, Merit Connect, ten questions a judge will ask.
+- [What parts of Stellar we used](https://github.com/don-radman/merit/blob/main/docs/STELLAR.md): each part in plain words with a proof, the track analysis against the rubric, the verification log.
+- [Go-to-market](https://github.com/don-radman/merit/blob/main/docs/GTM.md): who first, the wedge, the growth loop, phases, pricing options.
+- [Decisions](https://github.com/don-radman/merit/blob/main/DECISIONS.md): the design decisions and their reasons, including why no rate is ever on chain.
+- [Demo run sheet](https://github.com/don-radman/merit/blob/main/DEMO.md): the live portal walkthrough, beat by beat.
+- [Design](https://github.com/don-radman/merit/blob/main/DESIGN.md): how the Merit identity (Peak Signal v1.0) is applied.
+- [Architecture map source](https://github.com/don-radman/merit/blob/main/docs/architecture/merit.architecture.json): the typed source of the interactive map, with every citation.
+
+## Code
+
+- [Attribution contract](https://github.com/don-radman/merit/blob/main/contracts/introducer-rails/src/lib.rs): `initialise`, `register_introducer`, `subscribe`, `claim`, `settle` (issuer only), `recover`, `get_book`, `get_ledger`, `claimable_basis`. Emits `register`, `subscribe`, `claimed`, `recovered`. Stores no rate and no fee. Soroban, Rust, 10 host tests.
+- [Passkey smart account](https://github.com/don-radman/merit/blob/main/contracts/passkey-wallet/src/lib.rs): a custom account whose only signer is a WebAuthn passkey; `__check_auth` verifies the assertion with the `secp256r1_verify` host function and six checks. 13 host tests.
+- [Fee relayer](https://github.com/don-radman/merit/blob/main/site/server/relayer.mjs): pays network fees and deploys accounts, holds no passkey, cannot authorise anything. Two round trips: prepare derives the authorization payload as the WebAuthn challenge; submit places the assertion in the same entry.
+- [Live client](https://github.com/don-radman/merit/blob/main/src/lib/live.ts): the Merit app's reads of the deployed contract by RPC simulation; the adviser's rate is applied locally and never read from the chain.
+- [Confidential settlement](https://github.com/don-radman/merit/blob/main/scripts/conf-settle.mjs): applies a privately held rate and pays by a confidential transfer on OpenZeppelin's confidential token (stellar-contracts v0.8.0).
+- [Verification scripts](https://github.com/don-radman/merit/blob/main/scripts): testnet e2e that fails if a rate ever appears on a ledger row, the seed script, the smoke test (78 checks), the Playwright demo QA (30 checks), the secrets check.
+
+## On the Stellar testnet
+
+Contracts the demo and the portal read, on stellar.expert:
+
+- [Attribution contract](https://stellar.expert/explorer/testnet/contract/CDENXKDNNRLQ7F3C7VI3EWFPJBUMO5L6BDV2CZE6LSCP47G5JUGTPJT4): CDENXKDNNRLQ7F3C7VI3EWFPJBUMO5L6BDV2CZE6LSCP47G5JUGTPJT4
+- [Confidential fee token](https://stellar.expert/explorer/testnet/contract/CDHJYRAMWXJXNSSA36YIZFSMPWRBDN2KLLEY5KWLOS2P2JXKXIDSN3YX): CDHJYRAMWXJXNSSA36YIZFSMPWRBDN2KLLEY5KWLOS2P2JXKXIDSN3YX (OpenZeppelin)
+- [UltraHonk verifier](https://stellar.expert/explorer/testnet/contract/CCXDZXDL6KHPB2EBTK7COJ2DFLCYOGE3B2IA5K4RCPW7UZ7DIT4EOTUW): CCXDZXDL6KHPB2EBTK7COJ2DFLCYOGE3B2IA5K4RCPW7UZ7DIT4EOTUW
+- [Auditor registry](https://stellar.expert/explorer/testnet/contract/CB45BGTIVC256HCUFHY2D42UI3XA2TG2HH3HUTIBZH56SNRWCSEZJWU4): CB45BGTIVC256HCUFHY2D42UI3XA2TG2HH3HUTIBZH56SNRWCSEZJWU4
+- [Allowlist policy](https://stellar.expert/explorer/testnet/contract/CAX3QU5ZIJG4KZSDJRRXGJDX2252DVMJ27673XYTNTTO334XJYP25ONS): CAX3QU5ZIJG4KZSDJRRXGJDX2252DVMJ27673XYTNTTO334XJYP25ONS
+- [TUSDC, the subscription currency](https://stellar.expert/explorer/testnet/contract/CAU2S7MLSMT3T3OLZLLAEOYXIQ63RIQ3D2CXZGU7BVSABYOBBECCP45I): CAU2S7MLSMT3T3OLZLLAEOYXIQ63RIQ3D2CXZGU7BVSABYOBBECCP45I (Stellar Asset Contract)
+- [CSDIF, the fund unit](https://stellar.expert/explorer/testnet/contract/CDUDSK7LJATIT4OULSY6PRETCGYY5VIUH35HKDVHNMN3XMRQJAOQWCKO): CDUDSK7LJATIT4OULSY6PRETCGYY5VIUH35HKDVHNMN3XMRQJAOQWCKO (Stellar Asset Contract)
+- [Issuer account](https://stellar.expert/explorer/testnet/account/GA7NPGYR5C2ZP4XM4RPQXSCWO2XRFAPH3YFJUIJAAMWG3WJO6GUXT4YZ): GA7NPGYR5C2ZP4XM4RPQXSCWO2XRFAPH3YFJUIJAAMWG3WJO6GUXT4YZ
+
+Real transactions, one per beat of the story, all successful:
+
+- [initialise](https://stellar.expert/explorer/testnet/tx/b403ef291bf271af93cef7b76d87e1c1f08c799dd9c41ed250fef24e22272033): the fund opens its ledger (issuer, currency, unit, vesting window, minimum).
+- [register_introducer](https://stellar.expert/explorer/testnet/tx/245828ba7370599c3d013c798f10c1c0aef8ff0480501d5da153228bed9bc5e3): an adviser registered with a code.
+- [subscribe](https://stellar.expert/explorer/testnet/tx/e107d7862bb6e8f673009f8bf86ca71d74675afd0179166012a0fc8f709f6121): an investor subscribing through an adviser's code; USDC in, units out, the introduction recorded with its vesting date.
+- [claim](https://stellar.expert/explorer/testnet/tx/d8eaa9035398d3769c94121a5d339e10134539f3e41cc9e07d2412de8262c069): the adviser's own claim marks vested rows and emits ids, never an amount.
+- [settle](https://stellar.expert/explorer/testnet/tx/45b1b0d48cce0a5835580ee8433261c0ab1f8025b629d19d46ae3ee8f4479ea0): the fund's payout run, issuer only.
+- [recover](https://stellar.expert/explorer/testnet/tx/d31ef1507b44a1352f07ec6afd71717f8c054e3e5ded367870adccfe3e58ed4d): the fund reversing an introduction inside its window.
+- [deposit](https://stellar.expert/explorer/testnet/tx/b3f94e3e888a2bc49e0178a1ac11b85110b8fceb008809db64c0d466243a30a6): the fund topping up its confidential pool, the one amount that is public, as an aggregate.
+- [confidential transfer](https://stellar.expert/explorer/testnet/tx/b32cd67addbcbb3a5a1f3b78212126ed5194ceb7411fd5251765308358b50e35): a fee paid out of the pool; no amount anywhere in it.
+- [proof verified](https://stellar.expert/explorer/testnet/tx/b4e99c0c336af63b81b09bc19853d3cb2f1949ad15d9b32b6059594075143442): the deployed verifier accepting an UltraHonk proof over the BN254 host functions.
+
+## What is Stellar's, OpenZeppelin's and ours
+
+- Stellar's: classic assets and their Stellar Asset Contracts (the fund unit and the money, moved by `transfer` from inside our contract); native `secp256r1_verify`, so the investor's only credential is a passkey; contract events for the audit trail; RPC simulation for every read; the BN254 host functions (CAP-74) that make the proof verifier possible.
+- OpenZeppelin's: the confidential token, its allowlist policy, the UltraHonk verifier and the auditor registry. We consume that stack and wrote no circuits.
+- Ours: the attribution contract, the passkey smart account, the fee relayer, the adviser's book, the fund's ledger and payout run, the investor flow, the settlement script, Merit Connect.
+
+## Honest limits, stated before being asked
+
+- The Stellar verifier accepts non-zero-knowledge UltraHonk proofs today. The amount is absent from the ledger entry and the events, but the proof itself carries no privacy guarantee yet.
+- Confidential settlement ran by script against a separate deployment from the one the portal reads. Two proofs, not one pipeline.
+- The compliance flags on the testnet issuer are off; the "checking your details" stage is simulated. KYC stays with the fund or its portal (SEP-12 is the standard we point at).
+- The hosted demo runs on sample data in the browser. The live flow, with real passkey accounts and real testnet subscriptions, runs on the Calder portal in the repository.
+- It is a placement fee, settled once on the subscription basis, not a trail.
+
+## Team
+
+- Dan (don-radman, Co/Unity), Lewis Tierney (Yomanz) and Nick.
