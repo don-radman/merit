@@ -41,6 +41,10 @@ export default function IssuerConsole() {
   }, []);
 
   const canRun = typeof client.runSettlement === 'function';
+  // One word for one role, shared with the Calder portal (PRODUCT.roleLabel).
+  const role = PRODUCT.roleLabel.toLowerCase();
+  const roles = `${role}s`;
+  const n = (count: number) => (count === 1 ? role : roles);
 
   const runPayout = async () => {
     if (!client.runSettlement) return;
@@ -51,7 +55,7 @@ export default function IssuerConsole() {
       setReceipt(r);
       if (r.settledCount > 0) {
         push({
-          title: `Paid ${r.introducerCount} scout${r.introducerCount === 1 ? '' : 's'} privately`,
+          title: `Paid ${r.introducerCount} ${n(r.introducerCount)} privately`,
           body: `${r.settledCount} introduction${r.settledCount === 1 ? '' : 's'} settled. No amount appears on chain.`,
         });
       } else {
@@ -120,14 +124,14 @@ export default function IssuerConsole() {
           <div className="eyebrow">Fund</div>
           <h1>Attribution ledger</h1>
           <p className="muted">
-            {FUND.name} · {data.totals.introducerCount} scout{data.totals.introducerCount === 1 ? '' : 's'} ·{' '}
+            {FUND.name} · {data.totals.introducerCount} {n(data.totals.introducerCount)} ·{' '}
             {data.totals.investorCount} investor{data.totals.investorCount === 1 ? '' : 's'}
           </p>
         </div>
       </div>
 
       <div className="stats stats--4">
-        <StatTile label="Invested through scouts" value={formatUsd(data.totals.subscribedTotal)} hint={`${formatUsd(data.totals.unitsIssued)} units issued`} />
+        <StatTile label={`Invested through ${roles}`} value={formatUsd(data.totals.subscribedTotal)} hint={`${formatUsd(data.totals.unitsIssued)} units issued`} />
         <StatTile
           label="Fee liability"
           value={formatUsd(data.totals.outstandingFeeLiability)}
@@ -135,9 +139,9 @@ export default function IssuerConsole() {
           tone="quiet"
         />
         <StatTile
-          label="Ready to pay"
+          label="Payable now"
           value={formatUsd(fromCents(readyTotal))}
-          hint={readyRows.length ? `${readyRows.length} introduction${readyRows.length === 1 ? '' : 's'} · ${readyScouts} scout${readyScouts === 1 ? '' : 's'}` : 'nothing waiting'}
+          hint={readyRows.length ? `${readyRows.length} introduction${readyRows.length === 1 ? '' : 's'} · ${readyScouts} ${n(readyScouts)}` : 'nothing waiting'}
           tone="accent"
         />
         <StatTile label="Paid to date" value={formatUsd(data.totals.feesSettledTotal)} />
@@ -148,13 +152,13 @@ export default function IssuerConsole() {
         <div className="payout__body">
           <h2 id="payout-h">Payout run</h2>
           <p className="muted">
-            Settles every vested introduction at each scout’s own rate, in one go. One confidential
-            transfer per scout — the amounts never appear on chain, and no scout learns another’s terms.
+            Settles every vested introduction at each {role}’s own rate, in one go. One confidential
+            transfer per {role} — the amounts never appear on chain, and no {role} learns another’s terms.
           </p>
           {receipt && !running && (
             <p className="small receipt" role="status">
-              <ShieldCheckIcon size={14} /> {receipt.settledCount} settled · {receipt.introducerCount} scout
-              {receipt.introducerCount === 1 ? '' : 's'} · proved and sent in {(receipt.provingMs / 1000).toFixed(1)}s · ref{' '}
+              <ShieldCheckIcon size={14} /> {receipt.settledCount} settled · {receipt.introducerCount}{' '}
+              {n(receipt.introducerCount)} · proved and sent in {(receipt.provingMs / 1000).toFixed(1)}s · ref{' '}
               <span className="mono">{shortRef(receipt.txHash)}</span>
             </p>
           )}
@@ -178,7 +182,7 @@ export default function IssuerConsole() {
                 <span className="spinner" /> Proving and settling…
               </>
             ) : readyRows.length === 0 ? (
-              'Nothing ready'
+              'Nothing payable'
             ) : (
               `Run payout · ${readyRows.length}`
             )}
@@ -191,12 +195,12 @@ export default function IssuerConsole() {
       <section className="card card--flush" aria-labelledby="ledger-h">
         <div className="card__head">
           <h2 id="ledger-h">Introductions</h2>
-          <span className="muted small">Fees shown at each scout’s private rate — visible to the fund only</span>
+          <span className="muted small">Fees shown at each {role}’s private rate — visible to the fund only</span>
         </div>
         <div className="rows rows--ledger" role="table" aria-label="Attribution ledger">
           <div className="row row--head" role="row">
             <span role="columnheader">Investor</span>
-            <span role="columnheader">Scout</span>
+            <span role="columnheader">{PRODUCT.roleLabel}</span>
             <span role="columnheader" className="num">
               Invested
             </span>
@@ -247,21 +251,42 @@ export default function IssuerConsole() {
           <ShieldCheckIcon size={20} />
         </div>
         <div className="audit__body">
-          <div className="eyebrow">Independent check</div>
-          <h2 id="audit-h">{audit.data?.auditor ?? 'Auditor'}</h2>
-          {audit.data ? (
-            <p className="muted">
-              Decrypted settlements total <b className="tnum">{formatUsd(audit.data.encryptedTotal)}</b> against a stated liability of{' '}
-              <b className="tnum">{formatUsd(audit.data.statedLiability)}</b>.{' '}
-              {audit.data.reconciles ? 'They reconcile.' : 'They do not reconcile.'} The auditor holds a key that opens every settlement,
-              so the fund cannot under-report — and no scout’s rate or payout becomes public to get there.
-            </p>
+          {MODE === 'live' ? (
+            // Honest copy for live mode: this client holds no auditor key, so
+            // the only thing it can reconcile is the fund's ledger against
+            // itself. The independent check is the auditor's, not this screen's.
+            <>
+              <div className="eyebrow">Reconciliation — fund view</div>
+              <h2 id="audit-h">No auditor key is held by this client</h2>
+              {audit.data ? (
+                <p className="muted">
+                  Outstanding liability <b className="tnum">{formatUsd(audit.data.statedLiability)}</b>, read from the
+                  fund’s own ledger. The independent check — decrypting every confidential settlement with the
+                  auditor’s key and comparing the total — runs on the auditor’s side, not in this console.
+                </p>
+              ) : (
+                <p className="muted">Reading…</p>
+              )}
+            </>
           ) : (
-            <p className="muted">Checking…</p>
+            <>
+              <div className="eyebrow">Independent check</div>
+              <h2 id="audit-h">{audit.data?.auditor ?? 'Auditor'}</h2>
+              {audit.data ? (
+                <p className="muted">
+                  Decrypted settlements total <b className="tnum">{formatUsd(audit.data.encryptedTotal)}</b> against a stated liability of{' '}
+                  <b className="tnum">{formatUsd(audit.data.statedLiability)}</b>.{' '}
+                  {audit.data.reconciles ? 'They reconcile.' : 'They do not reconcile.'} The auditor holds a key that opens every settlement,
+                  so the fund cannot under-report — and no {role}’s rate or payout becomes public to get there.
+                </p>
+              ) : (
+                <p className="muted">Checking…</p>
+              )}
+            </>
           )}
         </div>
-        <div className={`audit__verdict ${audit.data?.reconciles ? 'ok' : ''}`}>
-          {audit.data?.reconciles ? 'Reconciles' : '—'}
+        <div className={`audit__verdict ${MODE !== 'live' && audit.data?.reconciles ? 'ok' : ''}`}>
+          {MODE === 'live' ? 'Fund view' : audit.data?.reconciles ? 'Reconciles' : '—'}
         </div>
       </section>
 

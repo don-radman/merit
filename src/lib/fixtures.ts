@@ -15,6 +15,7 @@
  */
 
 import type { Amount, IntroducerCode, Timestamp } from '@/lib/types.ts';
+import { hrefFor } from '@/route.ts';
 
 // ---------------------------------------------------------------------------
 // The fund
@@ -39,10 +40,16 @@ export const FUND = {
  * changes everywhere.
  */
 export const PRODUCT = {
-  name: 'ScoutShare',
-  tagline: "Scout's honour.",
-  /** What we call an introducer on screen. One word, no jargon. */
-  roleLabel: 'Scout',
+  // "Merit": value earned through action; "on the merits" in legal and
+  // financial use; warm in everyday speech. "Introduced via Merit."
+  name: 'Merit',
+  tagline: 'Credit where it’s due.',
+  /**
+   * What we call an introducer on screen. One word, no jargon. "Adviser"
+   * because that is what the Calder portal (site/) says, and the video cuts
+   * between the two surfaces — one word for one role.
+   */
+  roleLabel: 'Adviser',
 };
 
 /**
@@ -140,15 +147,15 @@ export const INTRODUCERS: FixtureIntroducer[] = [
 export const LINK_BASE = 'https://introducer-rails.demo/i';
 
 /**
- * In a browser the link points at THIS deployment, so the demo is one tab:
+ * In a browser the link points at THIS deployment (path or hash routing, see
+ * route.ts), so the demo is one tab:
  * copy the link on the scout screen, open it, and the investor flow runs
  * against the same in-memory stub. Outside a browser (smoke test) it falls
  * back to the placeholder host.
  */
 export function linkFor(code: IntroducerCode): string {
-  const base =
-    typeof location !== 'undefined' && location.origin ? `${location.origin}/i` : LINK_BASE;
-  return `${base}/${code}`;
+  if (typeof location === 'undefined' || !location.origin) return `${LINK_BASE}/${code}`;
+  return hrefFor(`/i/${code}`);
 }
 
 /**

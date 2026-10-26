@@ -134,6 +134,11 @@ export default function InvestorSubscribe({ code }: { code: string | null }) {
   });
   const [amount, setAmount] = useState('250000.00');
 
+  // The investor is the fund's client, so the tab says the fund, not Merit.
+  useEffect(() => {
+    document.title = FUND.name;
+  }, []);
+
   // Resolve the code from the link before showing anything, so a stale link is
   // an error state rather than a failed subscription five steps later.
   useEffect(() => {

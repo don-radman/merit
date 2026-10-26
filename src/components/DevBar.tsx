@@ -7,7 +7,7 @@ import {
   stubAdvanceVesting,
 } from '@/lib/index.ts';
 import type { ClientErrorCode } from '@/lib/index.ts';
-import { navigate } from '@/route.ts';
+import { currentLocation, navigate } from '@/route.ts';
 import type { Route } from '@/route.ts';
 
 /**
@@ -39,7 +39,9 @@ const ARMABLE: ClientErrorCode[] = [
 export default function DevBar({ route }: { route: Route }) {
   const [armed, setArmed] = useState<ClientErrorCode | ''>('');
 
-  if (!import.meta.env.DEV) return null;
+  // Dev builds always; production builds only when VITE_DEMO_BAR=1, which is
+  // how the hosted click-through demo keeps its levers.
+  if (!import.meta.env.DEV && import.meta.env.VITE_DEMO_BAR !== '1') return null;
 
   const scoutCode = route.screen === 'scout' ? route.code ?? 'CALDER-PR7' : 'CALDER-PR7';
 
@@ -47,7 +49,8 @@ export default function DevBar({ route }: { route: Route }) {
     await createClient({ role: 'issuer' }).resetDemo();
     setStubFailure(null);
     setArmed('');
-    navigate(location.pathname + location.search);
+    const { path, search } = currentLocation();
+    navigate(path + search);
   };
 
   const arm = (code: ClientErrorCode | '') => {
@@ -70,10 +73,10 @@ export default function DevBar({ route }: { route: Route }) {
           Phone
         </button>
         <button className={`btn btn--ghost btn--sm${is('scout')}`} onClick={() => navigate('/scout')}>
-          Scout
+          Adviser
         </button>
-        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/scout?code=CALDER-DO2')} title="The other scout, on a different rate">
-          Scout 2
+        <button className="btn btn--ghost btn--sm" onClick={() => navigate('/scout?code=CALDER-DO2')} title="The other adviser, on a different rate">
+          Adviser 2
         </button>
         <button className={`btn btn--ghost btn--sm${is('issuer')}`} onClick={() => navigate('/issuer')}>
           Fund
@@ -97,21 +100,28 @@ export default function DevBar({ route }: { route: Route }) {
         </span>
       )}
 
-      <label htmlFor="arm" className="devbar__label">
-        Fail next
-      </label>
-      <select id="arm" value={armed} onChange={(e) => arm(e.target.value as ClientErrorCode | '')}>
-        <option value="">—</option>
-        {ARMABLE.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      {/* Fail next and Reset act on the stub. In live mode they would mutate
+          state nothing on screen reads, so they are not offered. */}
+      {MODE === 'stub' && (
+        <>
+          <label htmlFor="arm" className="devbar__label">
+            Fail next
+          </label>
+          <select id="arm" value={armed} onChange={(e) => arm(e.target.value as ClientErrorCode | '')}>
+            <option value="">—</option>
+            {ARMABLE.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
 
-      <button className="btn btn--ghost btn--sm" onClick={reset}>
-        Reset
-      </button>
+          <button className="btn btn--ghost btn--sm" onClick={reset}>
+            Reset
+          </button>
+        </>
+      )}
+      {MODE === 'live' && <span className="muted small">reads are live · writes are not offered here</span>}
     </div>
   );
 }
