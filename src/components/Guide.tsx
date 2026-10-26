@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
+import '@/components/guide.css';
 import { ExternalLinkIcon, MeritMark } from '@/components/icons.tsx';
 import { MODE, PRODUCT, stubAdvanceVesting } from '@/lib/index.ts';
 import { CONTRACTS, TX, explorerContract, explorerTx } from '@/lib/onchain.ts';
@@ -240,12 +242,46 @@ export default function Guide({
   const swap = () => {
     const next = dock === 'left' ? 'right' : 'left';
     setDock(next);
+    setPos(null);
     try {
       localStorage.setItem('merit:guide-dock', next);
     } catch {
       /* fine */
     }
   };
+
+  // Drag by the header: the panel then sits wherever it was dropped, by its
+  // top-left corner, until Move snaps it back to a side. Minimised, it is a
+  // one-line pill that still steps and still drags.
+  const panel = useRef<HTMLElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [min, setMin] = useState(false);
+  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    if (matchMedia('(max-width: 760px)').matches) return;
+    const r = panel.current?.getBoundingClientRect();
+    if (!r) return;
+    drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    const x = Math.min(Math.max(e.clientX - drag.current.dx, 0), innerWidth - 120);
+    const y = Math.min(Math.max(e.clientY - drag.current.dy, 0), innerHeight - 60);
+    setPos({ x, y });
+  };
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    drag.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* already released */
+    }
+  };
+  const placement = pos ? { left: pos.x, top: pos.y } : undefined;
+  const classes = `guide card--inverse guide--${dock}${pos ? ' guide--dragged' : ''}${min ? ' guide--min' : ''}`;
+  const headProps = { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp };
   const onScreen =
     route.screen === step.screen &&
     (!step.code || ('code' in route && route.code === step.code)) &&
@@ -271,15 +307,41 @@ export default function Guide({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
+  if (min) {
+    return (
+      <aside ref={panel} className={classes} style={placement} role="dialog" aria-label="Guided demo, minimised">
+        <div className="guide__head" {...headProps}>
+          <span className="guide__kicker">
+            <MeritMark size={16} /> <b>{index + 1}/{STEPS.length}</b> {step.title}
+          </span>
+          <span className="guide__tools">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(index - 1)} disabled={index === 0}>
+              Back
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(index + 1)} disabled={last}>
+              Next
+            </button>
+            <button type="button" className="btn btn--sm" onClick={() => setMin(false)}>
+              Expand
+            </button>
+          </span>
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className={`guide card--inverse guide--${dock}`} role="dialog" aria-label="Guided demo">
-      <div className="guide__head">
+    <aside ref={panel} className={classes} style={placement} role="dialog" aria-label="Guided demo">
+      <div className="guide__head" {...headProps} title="Drag to move">
         <span className="guide__kicker">
           <MeritMark size={16} /> Guided demo · {index + 1} of {STEPS.length}
         </span>
         <span className="guide__tools">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={swap} title="Move the panel to the other side">
+          <button type="button" className="btn btn--ghost btn--sm" onClick={swap} title="Snap the panel to the other side">
             Move
+          </button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setMin(true)} title="Shrink to one line">
+            Minimise
           </button>
           <button type="button" className="btn btn--ghost btn--sm" onClick={onClose} aria-label="Close the guide">
             Close

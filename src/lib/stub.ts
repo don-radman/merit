@@ -394,7 +394,7 @@ export function createStubClient(config: ClientConfig): IntroducerRailsClient {
       const fullName = state.kycInput?.fullName?.trim() || 'New investor';
       const countryCode = state.kycInput?.countryCode ?? 'SG';
 
-      state.subs.push({
+      state.subs.unshift({
         id: String(state.nextId++),
         fullName,
         label: labelFor(fullName, countryCode),

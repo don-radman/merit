@@ -7,7 +7,7 @@ import Home from '@/screens/Home.tsx';
 import InvestorSubscribe from '@/screens/InvestorSubscribe.tsx';
 import ScoutDashboard from '@/screens/ScoutDashboard.tsx';
 import IssuerConsole from '@/screens/IssuerConsole.tsx';
-import { currentLocation, parseRoute } from '@/route.ts';
+import { HASH_ROUTING, currentLocation, parseRoute } from '@/route.ts';
 import type { Route } from '@/route.ts';
 
 const routeNow = (): Route => {
@@ -17,8 +17,25 @@ const routeNow = (): Route => {
 
 const guideRequested = (): boolean => new URLSearchParams(currentLocation().search).has('guide');
 
+/**
+ * demo.<domain> is the demo, not the brochure. A bare visit there lands on the
+ * adviser's book, the hero screen, with the demo bar and the guide one click
+ * away. Deep links and ?guide=1 are left alone. Path routing only; the hosted
+ * hash build has no hostname of its own.
+ */
+const DEMO_HOST = typeof location !== 'undefined' && /^demo\./i.test(location.hostname);
+
+const initialRoute = (): Route => {
+  const r = routeNow();
+  if (DEMO_HOST && !HASH_ROUTING && r.screen === 'home' && !guideRequested()) {
+    history.replaceState(null, '', '/scout');
+    return parseRoute('/scout', '');
+  }
+  return r;
+};
+
 export default function App() {
-  const [route, setRoute] = useState<Route>(routeNow);
+  const [route, setRoute] = useState<Route>(initialRoute);
   const [guide, setGuide] = useState<boolean>(guideRequested);
   const [step, setStep] = useState(0);
 

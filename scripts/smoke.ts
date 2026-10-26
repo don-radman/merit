@@ -118,8 +118,10 @@ eq('PR7 has its own rate', book.trailFeeBps, 50);
 eq('entries carry vesting', book.entries.every((e) => typeof e.vested === 'boolean' && !!e.vestsAt), true);
 eq('every entry has a state', book.entries.every((e) => !!e.state), true);
 eq('all four states appear', new Set(book.entries.map((e) => e.state)).size, 4);
-eq('new row is labelled from KYC', book.entries.at(-1)?.investorLabel, 'T. Lindqvist · Singapore');
-eq('new row is vesting', book.entries.at(-1)?.state, 'vesting');
+const newRow = book.entries.find((e) => e.investorLabel === 'T. Lindqvist · Singapore');
+eq('new row is labelled from KYC', newRow?.investorLabel, 'T. Lindqvist · Singapore');
+eq('new row is vesting', newRow?.state, 'vesting');
+eq('new row lands at the top of the book', book.entries[0]?.investorLabel, 'T. Lindqvist · Singapore');
 eq('trailFeeBps', book.totals.feeAccrued, feeOn(book.totals.subscribedTotal));
 
 // --- 7. collect now, then nothing left -------------------------------------
