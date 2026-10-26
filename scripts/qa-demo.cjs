@@ -1,5 +1,6 @@
 // QA for the built demo. Needs Playwright with Chromium available to `require` (not a dependency of this repo):
-//   npx vite build && node scripts/qa-demo.cjs dist /tmp/shots
+//   VITE_DEMO_BAR=1 npx vite build && node scripts/qa-demo.cjs dist /tmp/shots
+//   (the demo bar is dev-only unless VITE_DEMO_BAR=1, and the Vest all / Run payout steps need it)
 
 // End-to-end QA of the built demo (path routing, as deployed on Vercel).
 // Serves dist/ with an SPA fallback and drives the real flows in Chromium.

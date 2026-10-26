@@ -27,3 +27,6 @@ contracts/.e2e-state
 # privately negotiated commission rates — never commit
 contracts/rates.json
 contracts/.conf-state
+
+# archify scratch folders (the delivered map lives in docs/architecture)
+.archify

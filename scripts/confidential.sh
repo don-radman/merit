@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.nargo/bin:$HOME/.bb:$HOME/.cargo/bin:$PATH"
 
-CIRCUITS=${CIRCUITS:-$(ls -d /private/tmp/claude-501/*/*/scratchpad/oz/stellar-contracts/packages/confidential/circuits 2>/dev/null | head -1)}
+CIRCUITS=${CIRCUITS:-}
 [ -d "${CIRCUITS:-}" ] || { echo "Set CIRCUITS to OpenZeppelin's packages/confidential/circuits"; exit 1; }
 WORK=$(mktemp -d)
 

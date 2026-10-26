@@ -12,6 +12,29 @@ of ours for the record of who introduced whom, Stellar's native passkey verifica
 investor signs with Face ID instead of a seed phrase, and OpenZeppelin's confidential token
 on Stellar so the fee can be paid without its amount appearing on the public ledger.
 
+## Say it in a minute
+
+For the Stellar team, in the order they will ask.
+
+1. **What it is.** A record of who introduced an investor to a tokenized fund, written to the
+   network the moment the investor subscribes, and a placement fee that vests, pays itself and
+   stays private. Merit is the record and the payout; Merit Connect is the two calls a fund's
+   portal makes to use it.
+2. **Yours.** Classic assets and their Stellar Asset Contracts for the fund unit and the money
+   (`transfer` from inside our contract); `secp256r1_verify` so the investor's only credential
+   is a passkey; contract events for the audit trail; RPC simulation for every read; the
+   BN254 host functions that make OpenZeppelin's proof verifier possible.
+3. **OpenZeppelin's.** The confidential token (stellar-contracts v0.8.0), its allowlist
+   policy, the UltraHonk verifier and the auditor registry. We are a consumer of that stack,
+   not an author: no circuits of our own.
+4. **Ours.** One attribution contract (`subscribe`, `claim`, `settle`, `recover`, two reads)
+   that stores no rate and no fee; one passkey smart account; a fee relayer that pays and
+   cannot authorise; the adviser's book, the fund's ledger and the investor flow; a settlement
+   script that applies a private rate and pays by confidential transfer.
+5. **The honest limit.** The verifier accepts non-zero-knowledge UltraHonk proofs today, so
+   the amount is absent from the ledger and the events but the proof carries no privacy
+   guarantee yet. Testnet, fictional fund, play money.
+
 ## The parts, one by one
 
 ### 1. Stellar accounts and classic assets: the fund and the money

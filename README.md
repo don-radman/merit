@@ -11,7 +11,12 @@ is the repository's working name and appears nowhere a person reads. `PRODUCT.na
 `src/lib/fixtures.ts` is the one place the name lives in code. The identity (Merit / Peak
 Signal v1.0: brandbook, tokens, master marks) is in [`docs/brand`](./docs/brand); how it is
 applied is in [`DESIGN.md`](./DESIGN.md). The layers, the data boundary and the answers to the
-questions a judge will ask are in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+questions a judge will ask are in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md); which parts
+of Stellar we used, with proofs, in [`docs/STELLAR.md`](./docs/STELLAR.md); the go-to-market in
+[`docs/GTM.md`](./docs/GTM.md).
+
+**Live:** [meritdue.com](https://www.meritdue.com) · [demo.meritdue.com](https://demo.meritdue.com)
+(sample data, with a guided walkthrough at [`/?guide=1`](https://demo.meritdue.com/?guide=1)).
 
 ---
 
@@ -121,7 +126,7 @@ authenticator producing byte-identical payloads to a browser's). See D13–D15 i
 |---|---|---|
 | Fund unit | Classic Stellar asset via its SAC | The regulated-asset controls institutions ask for — `AUTH_REQUIRED`, freeze, clawback — are **asset flags we have not set on the testnet issuer**. See below. |
 | Subscription currency | USDC on testnet | What an investor would really send |
-| Attribution + minting | Soroban contract | Records code → investor → amount, mints units, accrues fee |
+| Attribution + vesting | Soroban contract (`contracts/introducer-rails`) | Records code → investor → amount and the vesting state; emits an event on every change. **Stores no rate and no fee.** |
 | Introducer fees | OpenZeppelin `stellar-confidential` (stellar-contracts v0.8.0) | Fee amounts encrypted; auditor holds a view key |
 | Investor wallet | Passkey smart wallet (`contracts/passkey-wallet`) | No seed phrase, no gas — the "my mum could use it" bar. `__check_auth` verifies a WebAuthn assertion with `secp256r1_verify`; D13 |
 | Fees | Relayer account holding no passkey | Pays and deploys; cannot authorise anything, so it is not custody; D14 |
@@ -294,6 +299,23 @@ npm run dev          # UI against the stub client — no chain needed
 The UI talks only to the client in `src/lib/`. `STUB` mode returns fixture data so the
 screens can be built and demoed with no contracts deployed; see
 [src/lib/README.md](./src/lib/README.md) for the swap to live testnet.
+
+### Verify it
+
+Everything below runs without a Stellar toolchain except `cargo test`, which needs Rust.
+
+```bash
+npm run typecheck                                                   # tsc, no emit
+npm run build                                                       # tsc + vite build
+npm run smoke                                                       # stub client: 78 checks
+VITE_DEMO_BAR=1 npx vite build && node scripts/qa-demo.cjs dist /tmp/shots   # Playwright over the built demo: 30 checks
+cargo test                                                          # both contracts, host-side: 23 tests
+./scripts/check-secrets.sh                                          # the repo hands over no live rate
+```
+
+The transactions the guided demo links to are real and listed in
+[`src/lib/onchain.ts`](./src/lib/onchain.ts); the verification log is at the end of
+[`docs/STELLAR.md`](./docs/STELLAR.md).
 
 ### Hosted click-through demo
 
