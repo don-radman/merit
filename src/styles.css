@@ -591,6 +591,11 @@ a {
 .stats--4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+@media (max-width: 900px) {
+  .stats--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 760px) {
   .stats,
   .stats--4 {
@@ -611,6 +616,20 @@ a {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  container-type: inline-size;
+}
+/* A figure never leaves its tile: the value steps down as the tile narrows.
+   Fifteen characters of 28px tabular Inter need about 245px; a 240px tile
+   holds 204px of content. */
+@container (max-width: 250px) {
+  .stat__value {
+    font-size: 22px;
+  }
+}
+@container (max-width: 200px) {
+  .stat__value {
+    font-size: 18px;
+  }
 }
 /* the focal tile takes the citron rule, not a citron fill */
 .stat--accent {
@@ -651,6 +670,7 @@ a {
   line-height: 1.1;
   color: var(--fg);
   font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
   transition: color var(--dur) var(--ease-out);
 }
 .stat__hint {

@@ -5,7 +5,7 @@ import StatusPill from '@/components/StatusPill.tsx';
 import { SkeletonRows, SkeletonStats } from '@/components/Skeleton.tsx';
 import { useToast } from '@/components/Toast.tsx';
 import { ShieldCheckIcon } from '@/components/icons.tsx';
-import { FUND, MODE, PRODUCT, createClient, formatUsd } from '@/lib/index.ts';
+import { FUND, MODE, PRODUCT, createClient, formatUsd, formatUsdWhole, formatAmountWhole } from '@/lib/index.ts';
 import type { ClientError, LedgerRow, SettlementReceipt } from '@/lib/index.ts';
 import { useLiveData } from '@/lib/useLiveData.ts';
 import { formatDate, shortRef } from '@/lib/format.ts';
@@ -131,7 +131,7 @@ export default function IssuerConsole() {
       </div>
 
       <div className="stats stats--4">
-        <StatTile label={`Invested through ${roles}`} value={formatUsd(data.totals.subscribedTotal)} hint={`${formatUsd(data.totals.unitsIssued)} units issued`} />
+        <StatTile label={`Invested through ${roles}`} value={formatUsdWhole(data.totals.subscribedTotal)} hint={`${formatAmountWhole(data.totals.unitsIssued)} units issued`} />
         <StatTile
           label="Fee liability"
           value={formatUsd(data.totals.outstandingFeeLiability)}

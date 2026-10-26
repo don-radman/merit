@@ -504,6 +504,16 @@ export function formatAmount(amount: Amount): string {
   return format(GROUPED, amount);
 }
 
+/** Whole units: "2250000.00" -> "2,250,000". Display only. */
+const GROUPED_WHOLE = new Intl.NumberFormat('en-GB', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+export function formatAmountWhole(amount: Amount): string {
+  return format(GROUPED_WHOLE, amount);
+}
+
 /**
  * Same, with the currency: "250000.00" -> "US$250,000.00".
  *
@@ -521,4 +531,21 @@ const USD = new Intl.NumberFormat('en-GB', {
 
 export function formatUsd(amount: Amount): string {
   return format(USD, amount);
+}
+
+/**
+ * Whole dollars: "2250000.00" -> "US$2,250,000". For headline totals, where
+ * the cents are noise and the width is what matters. Rounds half up, so use
+ * it for display only, never for arithmetic.
+ */
+const USD_WHOLE = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'USD',
+  currencyDisplay: 'symbol',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+export function formatUsdWhole(amount: Amount): string {
+  return format(USD_WHOLE, amount);
 }
