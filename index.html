@@ -9,9 +9,12 @@
       content="Subscribe to the fund through your introducer's link."
     />
     <meta name="color-scheme" content="light dark" />
-    <!-- Fonts are self-hosted (public/fonts, declared in src/styles.css); preload the two on every screen. -->
-    <link rel="preload" href="fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="fonts/ibm-plex-serif-500.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#f4f2e9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#202626" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <!-- Fonts are self-hosted (public/fonts, declared in src/styles.css); preload only the primary face. -->
+    <link rel="preload" href="fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

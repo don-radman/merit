@@ -141,3 +141,37 @@ export const InfoIcon = (p: IconProps) => (
     <path d="M12 8h.01" />
   </Icon>
 );
+
+/* ---------------------------------------------------------------------------
+   The Merit mark (docs/brand, master: merit-mark-graphite.svg). Two connected
+   peaks, one shared valley, a single snowcap cut. The viewBox is cropped to
+   the visible 82x80 bounds so `size` is the visible height, as the brandbook
+   measures it. Full snowcap mark at 32px and above; the micro mark (no cut)
+   below that, where the cut would close up. Never stretched, never outlined.
+   --------------------------------------------------------------------------- */
+
+const MARK_OUTLINE = 'M 10 90 L 34 22 L 49 52 L 68 10 L 92 90 L 71 90 L 60 57 L 49 80 L 36 58 L 25 90 Z';
+const MARK_CUT = 'M 68 23 L 59 44 L 67 38 L 74 43 Z';
+
+export function MeritMark({
+  size = 32,
+  label,
+  ...rest
+}: Omit<IconProps, 'children'>) {
+  const full = size >= 32;
+  return (
+    <svg
+      viewBox="10 10 82 80"
+      width={Math.round((size * 82) / 80)}
+      height={size}
+      fill="currentColor"
+      aria-hidden={label ? undefined : true}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      className="mark"
+      {...rest}
+    >
+      {full ? <path fillRule="evenodd" d={`${MARK_OUTLINE} ${MARK_CUT}`} /> : <path d={MARK_OUTLINE} />}
+    </svg>
+  );
+}

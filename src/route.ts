@@ -1,12 +1,12 @@
 /**
- * Three screens, no router dependency.
+ * Four screens, no router dependency.
  *
+ *   /              Merit's front page (what a visitor without a link sees)
  *   /i/<CODE>      investor subscribe  (the link an adviser shares)
  *   /scout         the adviser's own book   (alias: /introducer)
  *   /issuer        the fund's console
  *
- * `/` with no code renders the investor screen's empty state, which is what a
- * visitor arriving without a link should see.
+ * `/i` with no code renders the investor screen's empty state.
  *
  * `?code=` on /scout opens a different adviser's book (the demo bar uses it).
  * `?frame=phone` wraps the investor flow in a phone-sized frame, for recording
@@ -18,10 +18,12 @@
  * nothing but letters, digits, dots and dashes:
  *
  *   #scout · #scout.CALDER-DO2 · #issuer · #i.CALDER-PR7 · #i.CALDER-PR7.phone
+ *   (no token: the front page; #i alone: the investor screen with no link)
  *
  * Dev and a root deployment keep clean paths.
  */
 export type Route =
+  | { screen: 'home' }
   | { screen: 'investor'; code: string | null; phone: boolean }
   | { screen: 'scout'; code: string | null }
   | { screen: 'issuer' };
@@ -44,7 +46,7 @@ function fromToken(token: string): { path: string; search: string } {
       return { path: '/issuer', search: '' };
     case 'i':
       return {
-        path: code ? `/i/${encodeURIComponent(code)}` : '/',
+        path: code ? `/i/${encodeURIComponent(code)}` : '/i',
         search: flag === 'phone' ? '?frame=phone' : '',
       };
     default:
@@ -64,6 +66,7 @@ function toToken(to: string): string {
     return code ? `scout.${code}` : 'scout';
   }
   if (path.startsWith('/issuer')) return 'issuer';
+  if (path.startsWith('/i')) return 'i';
   return '';
 }
 
@@ -83,7 +86,10 @@ export function parseRoute(path: string, search: string): Route {
     return { screen: 'scout', code: params.get('code') };
   }
   if (path.startsWith('/issuer')) return { screen: 'issuer' };
-  return { screen: 'investor', code: params.get('code'), phone: params.has('frame') };
+  if (path.startsWith('/i') || params.has('code')) {
+    return { screen: 'investor', code: params.get('code'), phone: params.has('frame') };
+  }
+  return { screen: 'home' };
 }
 
 export function navigate(to: string): void {

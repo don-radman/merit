@@ -1,5 +1,14 @@
 # Merit — brand brief
 
+> **Superseded.** This brief was the hand-off for building the identity. The identity now
+> exists: **Merit / Peak Signal v1.0**, in [`docs/brand`](./brand) (brandbook PDF and text,
+> `merit-tokens.css`, `merit-brand-spec.json`, master SVG marks and lockups). Sections 6
+> and 10 below describe the placeholder look and the open decisions as they stood; the
+> brandbook decided them (steel, citron, Manrope + Inter + Plex Mono, the compact mountain
+> M) and [`DESIGN.md`](../DESIGN.md) records how that lands in `src/styles.css`. The rest
+> of this brief — name, purpose, audience, feeling, voice, the story the demo tells — still
+> holds and is the source the brandbook was written from.
+
 Everything decided so far about what Merit is, who it is for, how it speaks and how it
 currently looks. Written as the hand-off for building the visual identity: the
 brandbook should start from this, not re-derive it.
@@ -225,9 +234,7 @@ says crypto or secrecy.
 | **Fund console** (`/issuer`) | the fund manager | Merit (header says the fund) | ledger with each adviser's fee at *that* adviser's private rate · *Run payout* · reconciliation |
 | **Investor flow** (`/i/<CODE>` on the Calder portal) | the investor | **Calder** | the adviser who introduced them, resolved on chain · create a passkey · subscribe with one fingerprint · portfolio · wallet |
 
-Screenshots: `docs/screenshots/scout.png`, `scout-public-view.png`, `scout-dark.png`,
-`scout-setup.png`, `fund-console.png`, `investor-phone.png`, `investor-done.png`, and the
-Calder portal in `calder-*.jpg`.
+Screenshots (Peak Signal v1.0, as built): `docs/screenshots/home.png`, `home-dark.png`, `scout.png`, `scout-public-view.png`, `scout-dark.png`, `scout-setup.png`, `fund-console.png`, `investor-phone.png`. (`investor-done.png` predates the reskin.)
 
 **The signature image of the brand** is the adviser's book with the toggle flipped: her
 fees as dots, the banner saying *Not your rate. Not what you are paid.* Privacy made

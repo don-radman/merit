@@ -292,9 +292,10 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
 
         {isPublic && (
           <div className="banner banner--info" role="note">
-            <strong>This is the public record on Stellar.</strong>
-            That {book.displayName} introduced each investor, how much they invested, and whether the
-            fee has vested, been paid or been reversed. <b>Not your rate. Not what you are paid.</b>
+            <strong>Not your rate. Not what you are paid.</strong>
+            The public record on Stellar shows that {book.displayName} introduced each investor, how
+            much they invested, and whether the fee has vested, been paid or been reversed. Fee
+            figures are hidden.
           </div>
         )}
 
@@ -346,9 +347,10 @@ export default function ScoutDashboard({ code }: { code: string | null }) {
           </div>
         )}
 
-        {isPublic && book.entries.length > 0 && (
+        {book.entries.length > 0 && (isPublic || MODE === 'stub') && (
           <p className="muted small card__foot">
-            On chain, investors appear as account addresses; names are shown here for readability.
+            {isPublic && 'On chain, investors appear as account addresses; names are shown here for readability. '}
+            {MODE === 'stub' && <span className="mono">Illustrative data · reversed fees excluded from totals</span>}
           </p>
         )}
       </section>

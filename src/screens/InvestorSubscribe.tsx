@@ -84,7 +84,7 @@ const ERROR_COPY: Record<ClientErrorCode, { title: string; body: string }> = {
     body: 'We could not reach the network. Your subscription was not submitted.',
   },
   unknown: {
-    title: 'Something went wrong',
+    title: 'Not completed',
     body: 'Nothing was submitted. Trying again is safe.',
   },
 };
